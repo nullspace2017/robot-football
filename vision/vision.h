@@ -11,7 +11,7 @@ public:
     void get_edge_white();
     cv::Mat gen_as_pic();
 private:
-    enum VCOLOR { VCOLOR_WHITE = 0, VCOLOR_GREEN, VCOLOR_BACKGROUND, VCOLOR_EDGE };
+    enum VCOLOR { VCOLOR_WHITE = 0, VCOLOR_GREEN, VCOLOR_BACKGROUND, VCOLOR_EDGE, VCOLOR_EDGE_POSSIBLE };
     int height, width;
     uchar **v;
     uchar *v_pool;

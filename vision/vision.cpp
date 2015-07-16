@@ -22,8 +22,8 @@ void Vision::input(Mat const &in) {
     assert(in.rows == height);
     assert(in.cols == width);
     assert(in.dims == 2);
-    static auto get_color = [](uchar r, uchar g, uchar b) {
-        double V, S, H;
+    static auto get_color = [&](uchar r, uchar g, uchar b) {
+        double H, S, V;
         static auto conv_vsh = [&]{
             int maxx = (unsigned)max(r, max(g, b));
             int minx = (unsigned)min(r, min(g, b));
@@ -36,7 +36,7 @@ void Vision::input(Mat const &in) {
         };
         conv_vsh();
         if (H > 138 && H < 210 && S > 0.3 && V > 80) {
-            if (r > 140) return VCOLOR_WHITE;
+            if (r > 150) return VCOLOR_WHITE;
             return VCOLOR_GREEN;
         } else if (r > 120 && g > 120 && b > 160) {
             return VCOLOR_WHITE;
@@ -97,23 +97,40 @@ void Vision::get_edge_white() {
                             if (v[x][j] == 1) cnt_gr++;
                         }
                         if (cnt_gr > expect_gr * 0.5) {
-                            v[i][j] = VCOLOR_EDGE;
+                            v[i][j] = VCOLOR_EDGE_POSSIBLE;
                             break;
                         }
                     } else {
-                        v[i][j] = VCOLOR_EDGE;
+                        v[i][j] = VCOLOR_EDGE_POSSIBLE;
                         break;
                     }
                 }
             }
-            if (v[i][j] == VCOLOR_EDGE)
-              expand_to_white(i, j);
+            if (v[i][j] == VCOLOR_EDGE_POSSIBLE) {
+                int cnt_poss = 0;
+                int x1 = i - 4;
+                int x2 = i + 4;
+                int y1 = j - 4;
+                int y2 = j + 4;
+                cut_to_rect(x1, y1);
+                cut_to_rect(x2, y2);
+                for (int x = x1; x < x2; x += 2) {
+                    for (int y = y1; y < y2; y += 2) {
+                        if (v[x][y] == VCOLOR_EDGE_POSSIBLE)
+                            cnt_poss++;
+                    }
+                }
+                if (cnt_poss > 3) {
+                    v[i][j] = VCOLOR_EDGE;
+                    expand_to_white(i, j);
+                }
+            }
         }
     }
 }
 
 cv::Mat Vision::gen_as_pic() {
-    static Vec3b const const_colors[] = {Vec3b(255, 255, 255), Vec3b(0, 180, 0), Vec3b(0, 0, 0), Vec3b(0, 0, 255)};
+    static Vec3b const const_colors[] = {Vec3b(255, 255, 255), Vec3b(0, 180, 0), Vec3b(0, 0, 0), Vec3b(0, 0, 255), Vec3b(255, 0, 0)};
     Mat out(height, width, CV_8UC3);
     for (int i = 0; i < out.rows; i++) {
         uchar *puchar = v[i];
@@ -128,12 +145,11 @@ cv::Mat Vision::gen_as_pic() {
 void Vision::expand_to_white(int x, int y) {
     int vx[] = {x - 1, x + 1, x, x};
     int vy[] = {y, y, y - 1, y + 1};
-    uchar c = v[x][y];
     for (int i = 0; i < 4; i++) {
         int nx = vx[i];
         int ny = vy[i];
-        if (nx >= 0 && nx < height && ny >= 0 && ny < width && v[nx][ny] == VCOLOR_WHITE) {
-            v[nx][ny] = c;
+        if (in_rect(nx, ny) && (v[nx][ny] == VCOLOR_WHITE || v[nx][ny] == VCOLOR_EDGE_POSSIBLE)) {
+            v[nx][ny] = VCOLOR_EDGE;
             expand_to_white(nx, ny);
         }
     }
