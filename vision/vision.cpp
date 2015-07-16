@@ -5,8 +5,16 @@
 using namespace std;
 using namespace cv;
 
-Vision::Vision(int height, int width):
-    height(height), width(width) {
+cv::Vec3b const Vision::const_vcolors[] = {
+    Vec3b(255, 255, 255),
+    Vec3b(0, 180, 0),
+    Vec3b(0, 0, 0),
+    Vec3b(0, 0, 255),
+    Vec3b(255, 0, 0)
+};
+
+Vision::Vision(int height, int width, Transform *trans):
+    height(height), width(width), trans(trans) {
     v = new uchar *[height];
     v_pool = new uchar[height * width];
     for (int i = 0; i < height; i++)
@@ -43,6 +51,7 @@ void Vision::input(Mat const &in) {
         }
         return VCOLOR_BACKGROUND;
     };
+    pic = in;
     for (int i = 0; i < in.rows; i++) {
         uchar *puchar = v[i];
         Vec3b const *pmat = in.ptr<Vec3b const>(i);
@@ -130,13 +139,27 @@ void Vision::get_edge_white() {
 }
 
 cv::Mat Vision::gen_as_pic() {
-    static Vec3b const const_colors[] = {Vec3b(255, 255, 255), Vec3b(0, 180, 0), Vec3b(0, 0, 0), Vec3b(0, 0, 255), Vec3b(255, 0, 0)};
     Mat out(height, width, CV_8UC3);
     for (int i = 0; i < out.rows; i++) {
         uchar *puchar = v[i];
         Vec3b *pmat = out.ptr<Vec3b>(i);
         for (int j = 0; j < out.cols; j++) {
-            pmat[j] = const_colors[puchar[j]];
+            pmat[j] = const_vcolors[puchar[j]];
+        }
+    }
+    return out;
+}
+
+cv::Mat Vision::gen_planform() {
+    Mat out(600, 600, CV_8UC3, Scalar(0, 0, 0));
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            Vec2d point = trans->uv_to_xy(i, j);
+            int x = point[0] / 5 + 250;
+            int y = point[1] / 5;
+            if (x >= 0 && x < 600 && y >= 0 && y < 600) {
+                out.at<Vec3b>(599 - y, x) = pic.at<Vec3b>(i, j);
+            }
         }
     }
     return out;
@@ -154,4 +177,3 @@ void Vision::expand_to_white(int x, int y) {
         }
     }
 }
-
