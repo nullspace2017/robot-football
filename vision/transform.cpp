@@ -8,7 +8,7 @@ using namespace std;
 using namespace cv;
 
 Transform::Transform() {
-    camera_pos = Vec3d(-90.0, -25.0, 240.0);
+    camera_pos = Vec3d(-90.0, -0.0, 240.0);
     Vec3d center_pos(0, 1000, 0);
     axis_k = center_pos - camera_pos;
     axis_k /= sqrt(axis_k.dot(axis_k));
@@ -29,5 +29,6 @@ Vec2d Transform::uv_to_xy(int u, int v) {
 Vec2d Transform::get_delta_to_center_in_scale(int u, int v) {
     int du = u - 240;
     int dv = v - 320;
-    return Vec2d(-du * 1.500, dv * 1.500) / 1000.0;
+    double const per_pixel = 1.527 / 1000.0;
+    return Vec2d(-du * per_pixel, dv * per_pixel);
 }

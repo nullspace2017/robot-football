@@ -10,8 +10,8 @@ using namespace cv;
 
 #if 0
 void on_mouse(int event, int x, int y, int, void *) {
-    if(event == CV_EVENT_LBUTTONDOWN) {
-        cout << y << '\t' << x << endl;
+    if (event == CV_EVENT_LBUTTONDOWN) {
+        cout << x << '\t' << y << endl;
     }
 }
 

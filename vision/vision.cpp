@@ -51,7 +51,7 @@ void Vision::input(Mat const &in) {
         }
         return VCOLOR_BACKGROUND;
     };
-    pic = in;
+    pic = in.clone();
     for (int i = 0; i < in.rows; i++) {
         uchar *puchar = v[i];
         Vec3b const *pmat = in.ptr<Vec3b const>(i);
@@ -151,14 +151,14 @@ cv::Mat Vision::gen_as_pic() {
 }
 
 cv::Mat Vision::gen_planform() {
-    Mat out(600, 600, CV_8UC3, Scalar(0, 0, 0));
+    Mat out(700, 600, CV_8UC3, Scalar(0, 0, 0));
     for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
             Vec2d point = trans->uv_to_xy(i, j);
-            int x = point[0] / 5 + 250;
+            int x = point[0] / 5 + 300;
             int y = point[1] / 5;
-            if (x >= 0 && x < 600 && y >= 0 && y < 600) {
-                out.at<Vec3b>(599 - y, x) = pic.at<Vec3b>(i, j);
+            if (x >= 0 && x < 600 && y >= 0 && y < 700) {
+                out.at<Vec3b>(699 - y, x) = pic.at<Vec3b>(i, j);
             }
         }
     }
