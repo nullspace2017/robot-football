@@ -42,12 +42,13 @@ int main() {
 }
 #else
 int main() {
-    Mat frame = imread("../vision/1.jpg");
+    Mat frame = imread("../vision/5.jpg");
     Transform trans;
     Vision *vis = new Vision(frame.rows, frame.cols, &trans);
     vis->input(frame);
     vis->get_edge_white();
-    imshow("window", vis->gen_as_pic());
+    vis->get_white_lines();
+    //imshow("window", vis->gen_as_pic());
     imshow("platform", vis->gen_planform());
     waitKey();
     delete vis;

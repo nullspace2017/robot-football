@@ -12,6 +12,9 @@ public:
     void get_edge_white();
     cv::Mat gen_as_pic();
     cv::Mat gen_planform();
+
+public:
+    void get_white_lines();
 private:
     enum VCOLOR { VCOLOR_WHITE = 0, VCOLOR_GREEN, VCOLOR_BACKGROUND, VCOLOR_EDGE, VCOLOR_EDGE_POSSIBLE, VCOLOR_COUNT };
     static cv::Vec3b const const_vcolors[VCOLOR_COUNT];

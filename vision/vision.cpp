@@ -181,3 +181,46 @@ void Vision::expand_to_white(int x, int y) {
         }
     }
 }
+
+void Vision::get_white_lines() {
+    Mat plat = gen_planform(), white_region(plat.rows, plat.cols, CV_8U);
+    for (int i = 0; i < plat.rows; i ++) {
+        for (int j = 0; j < plat.cols; j ++) {
+            if (plat.at<Vec3b>(i, j) == Vec3b(0, 0, 255))
+                white_region.at<uchar>(i, j) = 255;
+        }
+    }
+    Canny(white_region, white_region, 200, 50);
+    vector<Vec2f> lines;
+    HoughLines(white_region, lines, 1, CV_PI/180, 20);
+    Mat angles(lines.size(), 1, CV_32F), labels(lines.size(), 1, CV_32S);
+    cout << lines.size() << endl;
+    for( size_t i = 0; i < lines.size(); i++ ) {
+        angles.at<float>(i, 1) = lines[i][0];
+        cout << angles.at<float>(i, 1) << endl;
+//        float rho = lines[i][0];
+//        float theta = lines[i][1];
+//        double a = cos(theta), b = sin(theta);
+//        double x0 = a*rho, y0 = b*rho;
+//        Point pt1(cvRound(x0 + 1000*(-b)),
+//                  cvRound(y0 + 1000*(a)));
+//        Point pt2(cvRound(x0 - 1000*(-b)),
+//                  cvRound(y0 - 1000*(a)));
+//        line(white_region, pt1, pt2, Scalar(128,0,255), 1, 8 );
+    }
+    kmeans(angles, 2, labels, TermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 10, 0.1), 3, KMEANS_PP_CENTERS);
+    for (size_t i = 0; i < lines.size(); i ++) {
+        if (labels.at<int>(i, 1) != 0) continue;
+        float rho = lines[i][0];
+        float theta = lines[i][1];
+        double a = cos(theta), b = sin(theta);
+        double x0 = a*rho, y0 = b*rho;
+        Point pt1(cvRound(x0 + 1000*(-b)),
+                  cvRound(y0 + 1000*(a)));
+        Point pt2(cvRound(x0 - 1000*(-b)),
+                  cvRound(y0 - 1000*(a)));
+        line(white_region, pt1, pt2, Scalar(128,0,255), 1, 8 );
+    }
+    imshow("white_region", white_region);
+    waitKey();
+}
