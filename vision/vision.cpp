@@ -205,11 +205,12 @@ void Vision::update_plat() {
 }
 
 void Vision::get_white_lines() {
-    Mat plat = gen_platform(), white_region(plat.rows, plat.cols, CV_8U);
-    for (int i = 0; i < plat.rows; i ++) {
-        for (int j = 0; j < plat.cols; j ++) {
-            if (plat.at<Vec3b>(i, j) == Vec3b(0, 0, 255))
-                white_region.at<uchar>(i, j) = 255;
+    Mat white_region(VPLAT_HEIGHT, VPLAT_WIDTH, CV_8U, Scalar::all(0));
+    for (int i = 0; i < white_region.rows; i ++) {
+        uchar *pwhite = white_region.ptr<uchar>(i);
+        for (int j = 0; j < white_region.cols; j ++) {
+            if (v_plat[i][j] == VCOLOR_EDGE)
+                pwhite[j] = 255;
         }
     }
     Canny(white_region, white_region, 200, 50);
