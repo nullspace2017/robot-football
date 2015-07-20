@@ -215,11 +215,30 @@ void Vision::get_white_lines() {
     Canny(white_region, white_region, 200, 50);
     vector<Vec2f> lines;
     HoughLines(white_region, lines, 1, CV_PI/180, 20);
-    Mat angles(lines.size(), 1, CV_32F), labels(lines.size(), 1, CV_32S);
-    cout << lines.size() << endl;
-    for( size_t i = 0; i < lines.size(); i++ ) {
-        angles.at<float>(i, 1) = lines[i][0];
-        //cout << angles.at<float>(i, 1) << endl;
+    for (size_t i = 0; i < lines.size(); i ++) {
+        float rho = lines[i][0], theta = lines[i][1];
+        float ct = cos(theta), st = sin(theta);
+        int count = 0;
+        for (int h = 0; h < plat.rows; h ++) {
+            int w = cvRound((rho/ct-(float)h)*ct/st);
+            if (plat.at<uchar>(h, w) == VCOLOR_EDGE) count ++;
+        }
+        if (count > 10) {
+            double a = cos(theta), b = sin(theta);
+            double x0 = a*rho, y0 = b*rho;
+            Point pt1(cvRound(x0 + 1000*(-b)),
+                      cvRound(y0 + 1000*(a)));
+            Point pt2(cvRound(x0 - 1000*(-b)),
+                      cvRound(y0 - 1000*(a)));
+            line(white_region, pt1, pt2, Scalar(128,0,255), 1, 8 );
+        }
+    }
+    imshow("white_region", white_region);
+    waitKey();
+//    Mat angles(lines.size(), 1, CV_32F), labels(lines.size(), 1, CV_32S);
+//    for( size_t i = 0; i < lines.size(); i++ ) {
+//        angles.at<float>(i, 1) = lines[i][0];
+//        cout << angles.at<float>(i, 1) << endl;
 //        float rho = lines[i][0];
 //        float theta = lines[i][1];
 //        double a = cos(theta), b = sin(theta);
@@ -229,20 +248,19 @@ void Vision::get_white_lines() {
 //        Point pt2(cvRound(x0 - 1000*(-b)),
 //                  cvRound(y0 - 1000*(a)));
 //        line(white_region, pt1, pt2, Scalar(128,0,255), 1, 8 );
-    }
-    kmeans(angles, 2, labels, TermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 10, 0.1), 3, KMEANS_PP_CENTERS);
-    for (size_t i = 0; i < lines.size(); i ++) {
-        if (labels.at<int>(i, 1) != 0) continue;
-        float rho = lines[i][0];
-        float theta = lines[i][1];
-        double a = cos(theta), b = sin(theta);
-        double x0 = a*rho, y0 = b*rho;
-        Point pt1(cvRound(x0 + 1000*(-b)),
-                  cvRound(y0 + 1000*(a)));
-        Point pt2(cvRound(x0 - 1000*(-b)),
-                  cvRound(y0 - 1000*(a)));
-        line(white_region, pt1, pt2, Scalar(128,0,255), 1, 8 );
-    }
-    imshow("white_region", white_region);
-    waitKey();
+//    }
+//    kmeans(angles, 2, labels, TermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 10, 0.1), 3, KMEANS_PP_CENTERS);
+//    for (size_t i = 0; i < lines.size(); i ++) {
+//        if (labels.at<int>(i, 1) != 0) continue;
+//        float rho = lines[i][0];
+//        float theta = lines[i][1];
+//        double a = cos(theta), b = sin(theta);
+//        double x0 = a*rho, y0 = b*rho;
+//        Point pt1(cvRound(x0 + 1000*(-b)),
+//                  cvRound(y0 + 1000*(a)));
+//        Point pt2(cvRound(x0 - 1000*(-b)),
+//                  cvRound(y0 - 1000*(a)));
+//        line(white_region, pt1, pt2, Scalar(128,0,255), 1, 8 );
+//    }
+
 }
