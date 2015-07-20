@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cstdio>
 #include <cassert>
+#include <functional>
 using namespace std;
 using namespace cv;
 
@@ -204,7 +205,7 @@ void Vision::update_plat() {
 }
 
 void Vision::get_white_lines() {
-    Mat plat = gen_planform(), white_region(plat.rows, plat.cols, CV_8U);
+    Mat plat = gen_platform(), white_region(plat.rows, plat.cols, CV_8U);
     for (int i = 0; i < plat.rows; i ++) {
         for (int j = 0; j < plat.cols; j ++) {
             if (plat.at<Vec3b>(i, j) == Vec3b(0, 0, 255))
@@ -218,7 +219,7 @@ void Vision::get_white_lines() {
     cout << lines.size() << endl;
     for( size_t i = 0; i < lines.size(); i++ ) {
         angles.at<float>(i, 1) = lines[i][0];
-        cout << angles.at<float>(i, 1) << endl;
+        //cout << angles.at<float>(i, 1) << endl;
 //        float rho = lines[i][0];
 //        float theta = lines[i][1];
 //        double a = cos(theta), b = sin(theta);
