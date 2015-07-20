@@ -14,6 +14,7 @@ Transform::Transform() {
     axis_k /= sqrt(axis_k.dot(axis_k));
     Vec3d tmp(1, 0, 0);
     axis_i = tmp.cross(axis_k);
+    axis_i /= sqrt(axis_i.dot(axis_i));
     axis_j = axis_k.cross(axis_i);
 }
 
