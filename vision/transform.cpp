@@ -26,9 +26,24 @@ Vec2d Transform::uv_to_xy(int u, int v) {
     return Vec2d(camera_pos[0] + lambda * direction[0], camera_pos[1] + lambda * direction[1]);
 }
 
+Vec2d Transform::xy_to_uv(double x, double y) {
+    Vec3d direction = Vec3d(x, y, 0) - camera_pos;
+    double weight_i = axis_i.dot(direction);
+    double weight_j = axis_j.dot(direction);
+    double weight_k = axis_k.dot(direction);
+    return get_uv_through_scale(weight_i / weight_k, weight_j / weight_k);
+}
+
 Vec2d Transform::get_delta_to_center_in_scale(int u, int v) {
+    double const per_pixel = 1.527 / 1000.0;
     int du = u - 240;
     int dv = v - 320;
-    double const per_pixel = 1.527 / 1000.0;
     return Vec2d(-du * per_pixel, dv * per_pixel);
+}
+
+Vec2d Transform::get_uv_through_scale(double weight_i, double weight_j) {
+    double const per_pixel = 1.527 / 1000.0;
+    double du = weight_i / per_pixel;
+    double dv = weight_j / per_pixel;
+    return Vec2d(240 - du, 320 + dv);
 }

@@ -35,7 +35,7 @@ int main() {
         cvSetMouseCallback("window0", on_mouse, 0);
         cvSetMouseCallback("window", on_mouse, 0);
         cvSetMouseCallback("platform", on_mouse, 0);
-        if (waitKey(30) >= 0) break;
+        if (waitKey(50) >= 0) break;
     }
     delete vis;
     return 0;

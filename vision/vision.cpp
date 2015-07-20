@@ -15,15 +15,15 @@ cv::Vec3b const Vision::const_vcolors[] = {
 
 Vision::Vision(int height, int width, Transform *trans):
     height(height), width(width), trans(trans) {
-    v = new uchar *[height];
-    v_pool = new uchar[height * width];
+    v_pic = new uchar *[height];
+    v_pic_pool = new uchar[height * width];
     for (int i = 0; i < height; i++)
-        v[i] = v_pool + i * width;
+        v_pic[i] = v_pic_pool + i * width;
 }
 
 Vision::~Vision() {
-    delete[] v_pool;
-    delete[] v;
+    delete[] v_pic_pool;
+    delete[] v_pic;
 }
 
 void Vision::input(Mat const &in) {
@@ -53,7 +53,7 @@ void Vision::input(Mat const &in) {
     };
     pic = in.clone();
     for (int i = 0; i < in.rows; i++) {
-        uchar *puchar = v[i];
+        uchar *puchar = v_pic[i];
         Vec3b const *pmat = in.ptr<Vec3b const>(i);
         for (int j = 0; j < in.cols; j++) {
             Vec3b const &pixel = pmat[j];
@@ -66,7 +66,7 @@ void Vision::input(Mat const &in) {
 void Vision::get_edge_white() {
     for (int i = 0; i < height; i += 2) {
         for (int j = 0; j < width; j += 2) {
-            if (v[i][j] != VCOLOR_WHITE) continue;
+            if (v_pic[i][j] != VCOLOR_WHITE) continue;
             static int const dx[] = {6, 10, 9, 22, 60};
             static int const dy[] = {6, 14, 20, 50, 25};
             static double const gr_rate[] = {0.75, 0.75, 0.70, 0.65, 0.65};
@@ -82,12 +82,12 @@ void Vision::get_edge_white() {
                     else cnt_gr++;
                 };
                 for (int k = x1; k <= x2; k++) {
-                    add_to_cnt(v[k][y1]);
-                    add_to_cnt(v[k][y2]);
+                    add_to_cnt(v_pic[k][y1]);
+                    add_to_cnt(v_pic[k][y2]);
                 }
                 for (int k = y1 + 1; k < y2; k++) {
-                    add_to_cnt(v[x1][k]);
-                    add_to_cnt(v[x2][k]);
+                    add_to_cnt(v_pic[x1][k]);
+                    add_to_cnt(v_pic[x2][k]);
                 }
                 int cnt_total = cnt_wh + cnt_gr + cnt_bk;
                 if (cnt_bk < cnt_total * 0.2 && cnt_wh > cnt_total * 0.1 && cnt_gr > cnt_total * gr_rate[m]) {
@@ -95,7 +95,7 @@ void Vision::get_edge_white() {
                         cnt_wh = 0;
                         int x;
                         for (x = i; x >= 0; x--) {
-                            if (v[x][j] == 0) cnt_wh++;
+                            if (v_pic[x][j] == 0) cnt_wh++;
                             else break;
                         }
                         int expect_gr = cnt_wh * 0.8;
@@ -103,19 +103,19 @@ void Vision::get_edge_white() {
                         cnt_gr = 0;
                         int startp = x;
                         for (; x >= 0 && x < startp + cnt_gr; x--) {
-                            if (v[x][j] == 1) cnt_gr++;
+                            if (v_pic[x][j] == 1) cnt_gr++;
                         }
                         if (cnt_gr > expect_gr * 0.5) {
-                            v[i][j] = VCOLOR_EDGE_POSSIBLE;
+                            v_pic[i][j] = VCOLOR_EDGE_POSSIBLE;
                             break;
                         }
                     } else {
-                        v[i][j] = VCOLOR_EDGE_POSSIBLE;
+                        v_pic[i][j] = VCOLOR_EDGE_POSSIBLE;
                         break;
                     }
                 }
             }
-            if (v[i][j] == VCOLOR_EDGE_POSSIBLE) {
+            if (v_pic[i][j] == VCOLOR_EDGE_POSSIBLE) {
                 int cnt_poss = 0;
                 int x1 = i - 4;
                 int x2 = i + 4;
@@ -125,12 +125,12 @@ void Vision::get_edge_white() {
                 cut_to_rect(x2, y2);
                 for (int x = x1; x < x2; x += 2) {
                     for (int y = y1; y < y2; y += 2) {
-                        if (v[x][y] == VCOLOR_EDGE_POSSIBLE)
+                        if (v_pic[x][y] == VCOLOR_EDGE_POSSIBLE)
                             cnt_poss++;
                     }
                 }
                 if (cnt_poss > 3) {
-                    v[i][j] = VCOLOR_EDGE;
+                    v_pic[i][j] = VCOLOR_EDGE;
                     expand_to_white(i, j);
                 }
             }
@@ -141,7 +141,7 @@ void Vision::get_edge_white() {
 cv::Mat Vision::gen_as_pic() {
     Mat out(height, width, CV_8UC3);
     for (int i = 0; i < out.rows; i++) {
-        uchar *puchar = v[i];
+        uchar *puchar = v_pic[i];
         Vec3b *pmat = out.ptr<Vec3b>(i);
         for (int j = 0; j < out.cols; j++) {
             pmat[j] = const_vcolors[puchar[j]];
@@ -151,14 +151,18 @@ cv::Mat Vision::gen_as_pic() {
 }
 
 cv::Mat Vision::gen_planform() {
-    Mat out(700, 600, CV_8UC3, Scalar(0, 0, 0));
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-            Vec2d point = trans->uv_to_xy(i, j);
-            int x = point[0] / 5 + 300;
-            int y = point[1] / 5;
-            if (x >= 0 && x < 600 && y >= 0 && y < 700) {
-                out.at<Vec3b>(699 - y, x) = pic.at<Vec3b>(i, j);
+    static Scalar const background_color = Scalar(31, 31, 31);
+    Mat out(700, 600, CV_8UC3, background_color);
+    for (int i = 0; i < 700; i++) {
+        Vec3b *pmat = out.ptr<Vec3b>(i);
+        for (int j = 0; j < 600; j++) {
+            double x = (j - 300) * 5.0;
+            double y = (699 - i) * 5.0;
+            Vec2d uv = trans->xy_to_uv(x, y);
+            int u = (int)uv[0];
+            int v = (int)uv[1];
+            if (in_rect(u, v)) {
+                pmat[j] = const_vcolors[v_pic[u][v]];
             }
         }
     }
@@ -171,8 +175,8 @@ void Vision::expand_to_white(int x, int y) {
     for (int i = 0; i < 4; i++) {
         int nx = vx[i];
         int ny = vy[i];
-        if (in_rect(nx, ny) && (v[nx][ny] == VCOLOR_WHITE || v[nx][ny] == VCOLOR_EDGE_POSSIBLE)) {
-            v[nx][ny] = VCOLOR_EDGE;
+        if (in_rect(nx, ny) && (v_pic[nx][ny] == VCOLOR_WHITE || v_pic[nx][ny] == VCOLOR_EDGE_POSSIBLE)) {
+            v_pic[nx][ny] = VCOLOR_EDGE;
             expand_to_white(nx, ny);
         }
     }

@@ -17,8 +17,8 @@ private:
     static cv::Vec3b const const_vcolors[VCOLOR_COUNT];
     cv::Mat pic;
     int height, width;
-    uchar **v;
-    uchar *v_pool;
+    uchar **v_pic;
+    uchar *v_pic_pool;
     Transform *trans;
 private:
     void expand_to_white(int x, int y);
