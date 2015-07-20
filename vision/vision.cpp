@@ -220,9 +220,10 @@ void Vision::get_white_lines() {
         float rho = lines[i][0], theta = lines[i][1];
         float ct = cos(theta), st = sin(theta);
         int count = 0;
-        for (int h = 0; h < plat.rows; h ++) {
+        for (int h = 0; h < VPLAT_HEIGHT; h ++) {
             int w = cvRound((rho/ct-(float)h)*ct/st);
-            if (plat.at<uchar>(h, w) == VCOLOR_EDGE) count ++;
+            if (w < 0 || w >= VPLAT_WIDTH) continue;
+            if (v_plat[h][w]== VCOLOR_EDGE) count ++;
         }
         if (count > 10) {
             double a = cos(theta), b = sin(theta);
