@@ -55,7 +55,7 @@ cv::Mat Vision::gen_as_pic() {
     return out;
 }
 
-cv::Mat Vision::gen_planform() {
+cv::Mat Vision::gen_platform() {
     Mat out(VPLAT_HEIGHT, VPLAT_WIDTH, CV_8UC3);
     for (int i = 0; i < out.rows; i++) {
         uchar *puchar = v_plat[i];
@@ -101,6 +101,7 @@ void Vision::pre_copy() {
 }
 
 void Vision::get_edge_white() {
+    // 这里的坐标系: xy与ij方向一致,即x=v,y=u
     for (int i = 0; i < height; i += 2) {
         for (int j = 0; j < width; j += 2) {
             if (v_pic[i][j] != VCOLOR_WHITE) continue;
@@ -194,8 +195,8 @@ void Vision::update_plat() {
             double y = (double)(VPLAT_HEIGHT - 1 - i) * VPLAT_MM_PER_PIXEL;
             Vec2d uv = trans->xy_to_uv(x, y);
             int u = (int)uv[0], v = (int)uv[1];
-            if (in_rect(u, v))
-                v_plat[i][j] = v_pic[u][v];
+            if (in_rect(v, u))
+                v_plat[i][j] = v_pic[v][u];
             else
                 v_plat[i][j] = VCOLOR_OUT_OF_RANGE;
         }

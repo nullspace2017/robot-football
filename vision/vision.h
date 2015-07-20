@@ -10,7 +10,7 @@ public:
     ~Vision();
     void input(cv::Mat const &in);
     cv::Mat gen_as_pic();
-    cv::Mat gen_planform();
+    cv::Mat gen_platform();
 private:
     enum VCOLOR { VCOLOR_WHITE = 0, VCOLOR_GREEN, VCOLOR_BACKGROUND, VCOLOR_EDGE, VCOLOR_EDGE_POSSIBLE, VCOLOR_OUT_OF_RANGE, VCOLOR_COUNT };
     enum { VPLAT_HEIGHT = 800, VPLAT_WIDTH = 800, VPLAT_MM_PER_PIXEL = 5 };

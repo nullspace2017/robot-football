@@ -46,7 +46,7 @@ int main() {
     Vision *vis = new Vision(frame.rows, frame.cols, &trans);
     vis->input(frame);
     imshow("window", vis->gen_as_pic());
-    imshow("platform", vis->gen_planform());
+    imshow("platform", vis->gen_platform());
     waitKey();
     delete vis;
     return 0;
