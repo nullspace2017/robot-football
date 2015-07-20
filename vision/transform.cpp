@@ -14,6 +14,7 @@ Transform::Transform() {
     axis_k /= sqrt(axis_k.dot(axis_k));
     Vec3d tmp(1, 0, 0);
     axis_i = tmp.cross(axis_k);
+    axis_i /= sqrt(axis_i.dot(axis_i));
     axis_j = axis_k.cross(axis_i);
 }
 
@@ -36,14 +37,14 @@ Vec2d Transform::xy_to_uv(double x, double y) {
 
 Vec2d Transform::get_delta_to_center_in_scale(int u, int v) {
     double const per_pixel = 1.527 / 1000.0;
-    int du = u - 240;
-    int dv = v - 320;
-    return Vec2d(-du * per_pixel, dv * per_pixel);
+    int du = u - 320;
+    int dv = v - 240;
+    return Vec2d(-dv * per_pixel, du * per_pixel);
 }
 
 Vec2d Transform::get_uv_through_scale(double weight_i, double weight_j) {
     double const per_pixel = 1.527 / 1000.0;
-    double du = weight_i / per_pixel;
-    double dv = weight_j / per_pixel;
-    return Vec2d(240 - du, 320 + dv);
+    double du = weight_j / per_pixel;
+    double dv = weight_i / per_pixel;
+    return Vec2d(320 + du, 240 - dv);
 }

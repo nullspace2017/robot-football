@@ -10,7 +10,8 @@ cv::Vec3b const Vision::const_vcolors[] = {
     Vec3b(0, 180, 0),
     Vec3b(0, 0, 0),
     Vec3b(0, 0, 255),
-    Vec3b(255, 0, 0)
+    Vec3b(255, 0, 0),
+    Vec3b(31, 31, 31)
 };
 
 Vision::Vision(int height, int width, Transform *trans):
@@ -19,17 +20,54 @@ Vision::Vision(int height, int width, Transform *trans):
     v_pic_pool = new uchar[height * width];
     for (int i = 0; i < height; i++)
         v_pic[i] = v_pic_pool + i * width;
+    v_plat = new uchar *[VPLAT_HEIGHT];
+    v_plat_pool = new uchar[VPLAT_HEIGHT * VPLAT_WIDTH];
+    for (int i = 0; i < VPLAT_HEIGHT; i++)
+        v_plat[i] = v_plat_pool + i * VPLAT_WIDTH;
 }
 
 Vision::~Vision() {
-    delete[] v_pic_pool;
     delete[] v_pic;
+    delete[] v_pic_pool;
+    delete[] v_plat;
+    delete[] v_plat_pool;
 }
 
 void Vision::input(Mat const &in) {
     assert(in.rows == height);
     assert(in.cols == width);
     assert(in.dims == 2);
+    pic = in.clone();
+    pre_copy();
+    get_edge_white();
+    update_plat();
+}
+
+cv::Mat Vision::gen_as_pic() {
+    Mat out(height, width, CV_8UC3);
+    for (int i = 0; i < out.rows; i++) {
+        uchar *puchar = v_pic[i];
+        Vec3b *pmat = out.ptr<Vec3b>(i);
+        for (int j = 0; j < out.cols; j++) {
+            pmat[j] = const_vcolors[puchar[j]];
+        }
+    }
+    return out;
+}
+
+cv::Mat Vision::gen_platform() {
+    Mat out(VPLAT_HEIGHT, VPLAT_WIDTH, CV_8UC3);
+    for (int i = 0; i < out.rows; i++) {
+        uchar *puchar = v_plat[i];
+        Vec3b *pmat = out.ptr<Vec3b>(i);
+        for (int j = 0; j < out.cols; j++) {
+            pmat[j] = const_vcolors[puchar[j]];
+        }
+    }
+    return out;
+}
+
+void Vision::pre_copy() {
     static auto get_color = [&](uchar r, uchar g, uchar b) {
         double H, S, V;
         static auto conv_vsh = [&]{
@@ -51,11 +89,10 @@ void Vision::input(Mat const &in) {
         }
         return VCOLOR_BACKGROUND;
     };
-    pic = in.clone();
-    for (int i = 0; i < in.rows; i++) {
+    for (int i = 0; i < pic.rows; i++) {
         uchar *puchar = v_pic[i];
-        Vec3b const *pmat = in.ptr<Vec3b const>(i);
-        for (int j = 0; j < in.cols; j++) {
+        Vec3b const *pmat = pic.ptr<Vec3b const>(i);
+        for (int j = 0; j < pic.cols; j++) {
             Vec3b const &pixel = pmat[j];
             uchar c = get_color(pixel[2], pixel[1], pixel[0]);
             puchar[j] = c;
@@ -64,6 +101,7 @@ void Vision::input(Mat const &in) {
 }
 
 void Vision::get_edge_white() {
+    // 这里的坐标系: xy与ij方向一致,即x=v,y=u
     for (int i = 0; i < height; i += 2) {
         for (int j = 0; j < width; j += 2) {
             if (v_pic[i][j] != VCOLOR_WHITE) continue;
@@ -131,6 +169,18 @@ void Vision::get_edge_white() {
                 }
                 if (cnt_poss > 3) {
                     v_pic[i][j] = VCOLOR_EDGE;
+                    static function<void(int, int)> expand_to_white = [&](int x, int y) {
+                        int vx[] = {x - 1, x + 1, x, x};
+                        int vy[] = {y, y, y - 1, y + 1};
+                        for (int i = 0; i < 4; i++) {
+                            int nx = vx[i];
+                            int ny = vy[i];
+                            if (in_rect(nx, ny) && (v_pic[nx][ny] == VCOLOR_WHITE || v_pic[nx][ny] == VCOLOR_EDGE_POSSIBLE)) {
+                                v_pic[nx][ny] = VCOLOR_EDGE;
+                                expand_to_white(nx, ny);
+                            }
+                        }
+                    };
                     expand_to_white(i, j);
                 }
             }
@@ -138,46 +188,17 @@ void Vision::get_edge_white() {
     }
 }
 
-cv::Mat Vision::gen_as_pic() {
-    Mat out(height, width, CV_8UC3);
-    for (int i = 0; i < out.rows; i++) {
-        uchar *puchar = v_pic[i];
-        Vec3b *pmat = out.ptr<Vec3b>(i);
-        for (int j = 0; j < out.cols; j++) {
-            pmat[j] = const_vcolors[puchar[j]];
-        }
-    }
-    return out;
-}
-
-cv::Mat Vision::gen_planform() {
-    static Scalar const background_color = Scalar(31, 31, 31);
-    Mat out(700, 600, CV_8UC3, background_color);
-    for (int i = 0; i < 700; i++) {
-        Vec3b *pmat = out.ptr<Vec3b>(i);
-        for (int j = 0; j < 600; j++) {
-            double x = (j - 300) * 5.0;
-            double y = (699 - i) * 5.0;
+void Vision::update_plat() {
+    for (int i = 0; i < VPLAT_HEIGHT; i++) {
+        for (int j = 0; j < VPLAT_WIDTH; j++) {
+            double x = (double)(j - VPLAT_WIDTH / 2) * VPLAT_MM_PER_PIXEL;
+            double y = (double)(VPLAT_HEIGHT - 1 - i) * VPLAT_MM_PER_PIXEL;
             Vec2d uv = trans->xy_to_uv(x, y);
-            int u = (int)uv[0];
-            int v = (int)uv[1];
-            if (in_rect(u, v)) {
-                pmat[j] = const_vcolors[v_pic[u][v]];
-            }
-        }
-    }
-    return out;
-}
-
-void Vision::expand_to_white(int x, int y) {
-    int vx[] = {x - 1, x + 1, x, x};
-    int vy[] = {y, y, y - 1, y + 1};
-    for (int i = 0; i < 4; i++) {
-        int nx = vx[i];
-        int ny = vy[i];
-        if (in_rect(nx, ny) && (v_pic[nx][ny] == VCOLOR_WHITE || v_pic[nx][ny] == VCOLOR_EDGE_POSSIBLE)) {
-            v_pic[nx][ny] = VCOLOR_EDGE;
-            expand_to_white(nx, ny);
+            int u = (int)uv[0], v = (int)uv[1];
+            if (in_rect(v, u))
+                v_plat[i][j] = v_pic[v][u];
+            else
+                v_plat[i][j] = VCOLOR_OUT_OF_RANGE;
         }
     }
 }
