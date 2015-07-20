@@ -215,26 +215,40 @@ void Vision::get_white_lines() {
     }
     Canny(white_region, white_region, 200, 50);
     vector<Vec2f> lines;
-    HoughLines(white_region, lines, 1, CV_PI/180, 20);
+    HoughLines(white_region, lines, 1, CV_PI/180, 25);
+    const float dr[3] = {0, 20.0 / VPLAT_MM_PER_PIXEL, -20.0 / VPLAT_MM_PER_PIXEL};
+    int num = 0;
     for (size_t i = 0; i < lines.size(); i ++) {
-        float rho = lines[i][0], theta = lines[i][1];
-        float ct = cos(theta), st = sin(theta);
-        int count = 0;
-        for (int h = 0; h < VPLAT_HEIGHT; h ++) {
-            int w = cvRound((rho/ct-(float)h)*ct/st);
-            if (w < 0 || w >= VPLAT_WIDTH) continue;
-            if (v_plat[h][w]== VCOLOR_EDGE) count ++;
-        }
-        if (count > 10) {
-            double a = cos(theta), b = sin(theta);
-            double x0 = a*rho, y0 = b*rho;
-            Point pt1(cvRound(x0 + 1000*(-b)),
-                      cvRound(y0 + 1000*(a)));
-            Point pt2(cvRound(x0 - 1000*(-b)),
-                      cvRound(y0 - 1000*(a)));
-            line(white_region, pt1, pt2, Scalar(128,0,255), 1, 8 );
+        for (int k = 0; k < 3; k ++) {
+            float rho = lines[i][0] += dr[k], theta = lines[i][1];
+            float ct = cos(theta), st = sin(theta);
+            int count = 0;
+            if (theta > CV_PI / 2) {
+                for (int h = 0; h < VPLAT_HEIGHT; h ++) {
+                    int w = cvRound((rho/st-(float)h)*st/ct);
+                    if (w < 0 || w >= VPLAT_WIDTH) continue;
+                    if (v_plat[h][w]== VCOLOR_EDGE) count ++;
+                }
+            } else {
+                for (int w = 0; w < VPLAT_WIDTH; w ++) {
+                    int h = cvRound((rho/ct-(float)w)*ct/st);
+                    if (h < 0 || h >= VPLAT_HEIGHT) continue;
+                    if (v_plat[h][w] == VCOLOR_EDGE) count ++;
+                }
+            }
+            if (count > 60) {
+                double a = cos(theta), b = sin(theta);
+                double x0 = a*rho, y0 = b*rho;
+                Point pt1(cvRound(x0 + 1000*(-b)),
+                          cvRound(y0 + 1000*(a)));
+                Point pt2(cvRound(x0 - 1000*(-b)),
+                          cvRound(y0 - 1000*(a)));
+                line(white_region, pt1, pt2, Scalar(128,0,255), 1, 8 );
+                num ++;
+            }
         }
     }
+    cout << num << endl;
     imshow("white_region", white_region);
     waitKey();
 //    Mat angles(lines.size(), 1, CV_32F), labels(lines.size(), 1, CV_32S);
@@ -264,5 +278,4 @@ void Vision::get_white_lines() {
 //                  cvRound(y0 - 1000*(a)));
 //        line(white_region, pt1, pt2, Scalar(128,0,255), 1, 8 );
 //    }
-
 }
