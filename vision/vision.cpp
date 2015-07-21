@@ -28,6 +28,7 @@ Vision::Vision(int height, int width, Transform *trans):
     v_plat_pool = new uchar[VPLAT_HEIGHT * VPLAT_WIDTH];
     for (int i = 0; i < VPLAT_HEIGHT; i++)
         v_plat[i] = v_plat_pool + i * VPLAT_WIDTH;
+    init_ground();
 }
 
 Vision::~Vision() {
@@ -45,6 +46,8 @@ void Vision::input(Mat const &in) {
     pre_copy();
     get_edge_white();
     update_plat();
+    get_white_lines();
+    match_robot_pos();
 }
 
 cv::Mat Vision::gen_as_pic() {
@@ -68,13 +71,36 @@ cv::Mat Vision::gen_platform() {
             pmat[j] = const_vcolors[puchar[j]];
         }
     }
+    for (size_t i = 0; i < white_lines.size(); i++) {
+        double rho = white_lines[i][0], theta = white_lines[i][1];
+        double a = cos(theta), b = sin(theta);
+        double x0 = a * rho, y0 = b * rho;
+        Point pt1(cvRound(x0 + 1000*(-b)),
+                  cvRound(y0 + 1000*(a)));
+        Point pt2(cvRound(x0 - 1000*(-b)),
+                  cvRound(y0 - 1000*(a)));
+        line(out, pt1, pt2, Scalar(128,0,255), 1, 8 );
+    }
     return out;
+}
+
+void Vision::init_ground() {
+    ground.clear();
+    ground.push_back(Vec4d(   0,    0, 1800,    0));
+    ground.push_back(Vec4d( 350,  640, 1450,  640));
+    ground.push_back(Vec4d(   0, 2200, 1800, 2200));
+    ground.push_back(Vec4d( 350, 3760, 1450, 3760));
+    ground.push_back(Vec4d(   0, 4400, 1800, 4400));
+    ground.push_back(Vec4d( 350,    0,  350,  640));
+    ground.push_back(Vec4d(1450,    0, 1450,  640));
+    ground.push_back(Vec4d( 350, 3760,  350, 4400));
+    ground.push_back(Vec4d(1450, 3760, 1450, 4400));
 }
 
 void Vision::pre_copy() {
     static auto get_color = [&](uchar r, uchar g, uchar b) {
         double H, S, V;
-        static auto conv_vsh = [&]{
+        static auto conv_vsh = [&]() {
             int maxx = (unsigned)max(r, max(g, b));
             int minx = (unsigned)min(r, min(g, b));
             V = (double)maxx;
@@ -196,9 +222,9 @@ void Vision::update_plat() {
     for (int i = 0; i < VPLAT_HEIGHT; i++) {
         for (int j = 0; j < VPLAT_WIDTH; j++) {
             double x = (double)(j - VPLAT_WIDTH / 2) * VPLAT_MM_PER_PIXEL;
-            double y = (double)(VPLAT_HEIGHT - 1 - i) * VPLAT_MM_PER_PIXEL;
+            double y = (double)(VPLAT_HEIGHT - i) * VPLAT_MM_PER_PIXEL;
             Vec2d uv = trans->xy_to_uv(x, y);
-            int u = (int)uv[0], v = (int)uv[1];
+            int u = cvRound(uv[0]), v = cvRound(uv[1]);
             if (in_rect(v, u))
                 v_plat[i][j] = v_pic[v][u];
             else
@@ -217,7 +243,7 @@ void Vision::get_white_lines() {
         }
     }
     Canny(white_region, white_region, 200, 50);
-    vector<Vec2f> lines, filt_lines;;
+    vector<Vec2f> lines, filt_lines;
     HoughLines(white_region, lines, 1, CV_PI/180, 25);
     const float dr[3] = {0, 20.0 / VPLAT_MM_PER_PIXEL, -20.0 / VPLAT_MM_PER_PIXEL};
     auto traverse_line = [](float rho, float theta, function<void(int v, int u)> vis) {
@@ -343,44 +369,44 @@ void Vision::get_white_lines() {
             }
         }
     }
+    white_lines.clear();
     for (size_t i = 0; i < lines.size(); i++) {
-        if (classify[i] <= 0) continue;
-        double rho = lines[i][0], theta = lines[i][1];
-        double a = cos(theta), b = sin(theta);
-        double x0 = a*rho, y0 = b*rho;
-        Point pt1(cvRound(x0 + 1000*(-b)),
-                  cvRound(y0 + 1000*(a)));
-        Point pt2(cvRound(x0 - 1000*(-b)),
-                  cvRound(y0 - 1000*(a)));
-        line(white_region, pt1, pt2, Scalar(128,0,255), 1, 8 );
+        if (classify[i] > 0)
+            white_lines.push_back(lines[i]);
     }
-    imshow("white_region", white_region);
+}
 
-//    Mat angles(lines.size(), 1, CV_32F), labels(lines.size(), 1, CV_32S);
-//    for( size_t i = 0; i < lines.size(); i++ ) {
-//        angles.at<float>(i, 1) = lines[i][0];
-//        cout << angles.at<float>(i, 1) << endl;
-//        float rho = lines[i][0];
-//        float theta = lines[i][1];
-//        double a = cos(theta), b = sin(theta);
-//        double x0 = a*rho, y0 = b*rho;
-//        Point pt1(cvRound(x0 + 1000*(-b)),
-//                  cvRound(y0 + 1000*(a)));
-//        Point pt2(cvRound(x0 - 1000*(-b)),
-//                  cvRound(y0 - 1000*(a)));
-//        line(white_region, pt1, pt2, Scalar(128,0,255), 1, 8 );
-//    }
-//    kmeans(angles, 2, labels, TermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 10, 0.1), 3, KMEANS_PP_CENTERS);
-//    for (size_t i = 0; i < lines.size(); i ++) {
-//        if (labels.at<int>(i, 1) != 0) continue;
-//        float rho = lines[i][0];
-//        float theta = lines[i][1];
-//        double a = cos(theta), b = sin(theta);
-//        double x0 = a*rho, y0 = b*rho;
-//        Point pt1(cvRound(x0 + 1000*(-b)),
-//                  cvRound(y0 + 1000*(a)));
-//        Point pt2(cvRound(x0 - 1000*(-b)),
-//                  cvRound(y0 - 1000*(a)));
-//        line(white_region, pt1, pt2, Scalar(128,0,255), 1, 8 );
-//    }
+void Vision::match_robot_pos() {
+    static double const add_angle_per_times = CV_PI / 180;
+    float min_error = 1e20;
+    double delta_base;
+    for (double angle = 0; angle < CV_PI / 2; angle += add_angle_per_times) {
+        float error = 0;
+        for (size_t i = 0; i < white_lines.size(); i++) {
+            float theta = white_lines[i][1] + angle;
+            while (theta > CV_PI / 4) theta -= CV_PI / 2;
+            while (theta < -CV_PI / 4) theta += CV_PI / 2;
+            error += theta * theta;
+        }
+        if (error < min_error) {
+            min_error = error;
+            delta_base = angle;
+        }
+    }
+    vector<Point2d> white_point_in_robot;
+    for (int i = 0; i < VPLAT_HEIGHT; i++) {
+        for (int j = 0; j < VPLAT_WIDTH; j++) {
+            if (v_plat[i][j] == VCOLOR_EDGE) {
+                double x = (double)(j - VPLAT_WIDTH / 2) * VPLAT_MM_PER_PIXEL;
+                double y = (double)(VPLAT_HEIGHT - i) * VPLAT_MM_PER_PIXEL;
+                white_point_in_robot.push_back(Point2d(x, y));
+            }
+        }
+    }
+    for (int i = 0; i < 4; i++) {
+        double delta = delta_base + CV_PI / 2 * i;
+        Point2d supposed_pos(100.0, 200.0);
+        Vec2d i_robot_to_world(cos(delta), -sin(delta)), j_robot_to_world(sin(delta), cos(delta));
+
+    }
 }
