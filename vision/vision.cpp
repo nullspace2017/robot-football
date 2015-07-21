@@ -1,7 +1,10 @@
 #include "vision.h"
 #include <iostream>
 #include <cstdio>
+#include <ctime>
+#include <cstdlib>
 #include <cassert>
+#include <algorithm>
 #include <functional>
 using namespace std;
 using namespace cv;
@@ -214,10 +217,9 @@ void Vision::get_white_lines() {
         }
     }
     Canny(white_region, white_region, 200, 50);
-    vector<Vec2f> lines;
+    vector<Vec2f> lines, filt_lines;;
     HoughLines(white_region, lines, 1, CV_PI/180, 25);
     const float dr[3] = {0, 20.0 / VPLAT_MM_PER_PIXEL, -20.0 / VPLAT_MM_PER_PIXEL};
-    int num = 0;
     auto traverse_line = [](float rho, float theta, function<void(int, int)> vis) {
         float ct = cos(theta), st = sin(theta);
         if (theta > CV_PI / 2) {
@@ -255,21 +257,37 @@ void Vision::get_white_lines() {
         });
         return max_continious;
     };
+    int num = 0;
     for (size_t i = 0; i < lines.size(); i ++) {
         for (int k = 0; k < 3; k ++) {
             float rho = lines[i][0] += dr[k], theta = lines[i][1];
-            int count = 0;
-            traverse_line(rho, theta, [&](int v, int u) { if (v_plat[v][u] == VCOLOR_EDGE) count++; });
             if (continious_white_point_in_line(rho, theta) > 50) {
-                double a = cos(theta), b = sin(theta);
-                double x0 = a*rho, y0 = b*rho;
-                Point pt1(cvRound(x0 + 1000*(-b)),
-                          cvRound(y0 + 1000*(a)));
-                Point pt2(cvRound(x0 - 1000*(-b)),
-                          cvRound(y0 - 1000*(a)));
-                line(white_region, pt1, pt2, Scalar(128,0,255), 1, 8 );
+                filt_lines.push_back(Vec2f(rho, theta));
                 num ++;
             }
+        }
+    }
+    lines.clear();
+    vector<int> line_parti[6];
+    for (size_t i = 0; i < filt_lines.size(); i ++) {
+        int ind = (int)(filt_lines[i][1] * 6.0f / CV_PI);
+        line_parti[ind].push_back(i);
+    }
+    for (size_t i = 0; i < 6; i ++) {
+        int count = 0;
+        random_shuffle(line_parti[i].begin(), line_parti[i].end());
+        while (count < min(10, (int)line_parti[i].size())) {
+            int ind = line_parti[i][count];
+            double rho = filt_lines[ind][0], theta = filt_lines[ind][1];
+            lines.push_back(Vec2f(rho, theta));
+            count ++;
+            double a = cos(theta), b = sin(theta);
+            double x0 = a*rho, y0 = b*rho;
+            Point pt1(cvRound(x0 + 1000*(-b)),
+                      cvRound(y0 + 1000*(a)));
+            Point pt2(cvRound(x0 - 1000*(-b)),
+                      cvRound(y0 - 1000*(a)));
+            line(white_region, pt1, pt2, Scalar(128,0,255), 1, 8 );
         }
     }
     cout << num << endl;

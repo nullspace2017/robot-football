@@ -41,6 +41,7 @@ int main() {
 }
 #else
 int main() {
+    srand(time(0));
     Mat frame = imread("../vision/5.jpg");
     Transform trans;
     Vision *vis = new Vision(frame.rows, frame.cols, &trans);
