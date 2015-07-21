@@ -234,12 +234,33 @@ void Vision::get_white_lines() {
             }
         }
     };
+    auto continious_white_point_in_line = [&](float rho, float theta) {
+        int max_continious = 0;
+        int continious = 0;
+        int intervered = 0;
+        traverse_line(rho, theta, [&](int v, int u) {
+           if (v_plat[v][u] == VCOLOR_EDGE) {
+               continious++;
+               intervered = 0;
+           } else {
+               intervered++;
+               if (intervered > 2) {
+                   if (continious > max_continious)
+                       max_continious = continious;
+                   continious = 0;
+               }
+           }
+           if (continious > max_continious)
+               max_continious = continious;
+        });
+        return max_continious;
+    };
     for (size_t i = 0; i < lines.size(); i ++) {
         for (int k = 0; k < 3; k ++) {
             float rho = lines[i][0] += dr[k], theta = lines[i][1];
             int count = 0;
             traverse_line(rho, theta, [&](int v, int u) { if (v_plat[v][u] == VCOLOR_EDGE) count++; });
-            if (count > 60) {
+            if (continious_white_point_in_line(rho, theta) > 50) {
                 double a = cos(theta), b = sin(theta);
                 double x0 = a*rho, y0 = b*rho;
                 Point pt1(cvRound(x0 + 1000*(-b)),
