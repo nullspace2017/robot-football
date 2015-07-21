@@ -218,24 +218,27 @@ void Vision::get_white_lines() {
     HoughLines(white_region, lines, 1, CV_PI/180, 25);
     const float dr[3] = {0, 20.0 / VPLAT_MM_PER_PIXEL, -20.0 / VPLAT_MM_PER_PIXEL};
     int num = 0;
+    auto traverse_line = [](float rho, float theta, function<void(int, int)> vis) {
+        float ct = cos(theta), st = sin(theta);
+        if (theta > CV_PI / 2) {
+            for (int h = 0; h < VPLAT_HEIGHT; h ++) {
+                int w = cvRound((rho/st-(float)h)*st/ct);
+                if (w < 0 || w >= VPLAT_WIDTH) continue;
+                vis(h, w);
+            }
+        } else {
+            for (int w = 0; w < VPLAT_WIDTH; w ++) {
+                int h = cvRound((rho/ct-(float)w)*ct/st);
+                if (h < 0 || h >= VPLAT_HEIGHT) continue;
+                vis(h, w);
+            }
+        }
+    };
     for (size_t i = 0; i < lines.size(); i ++) {
         for (int k = 0; k < 3; k ++) {
             float rho = lines[i][0] += dr[k], theta = lines[i][1];
-            float ct = cos(theta), st = sin(theta);
             int count = 0;
-            if (theta > CV_PI / 2) {
-                for (int h = 0; h < VPLAT_HEIGHT; h ++) {
-                    int w = cvRound((rho/st-(float)h)*st/ct);
-                    if (w < 0 || w >= VPLAT_WIDTH) continue;
-                    if (v_plat[h][w]== VCOLOR_EDGE) count ++;
-                }
-            } else {
-                for (int w = 0; w < VPLAT_WIDTH; w ++) {
-                    int h = cvRound((rho/ct-(float)w)*ct/st);
-                    if (h < 0 || h >= VPLAT_HEIGHT) continue;
-                    if (v_plat[h][w] == VCOLOR_EDGE) count ++;
-                }
-            }
+            traverse_line(rho, theta, [&](int v, int u) { if (v_plat[v][u] == VCOLOR_EDGE) count++; });
             if (count > 60) {
                 double a = cos(theta), b = sin(theta);
                 double x0 = a*rho, y0 = b*rho;
@@ -251,6 +254,55 @@ void Vision::get_white_lines() {
     cout << num << endl;
     imshow("white_region", white_region);
     waitKey();
+    vector<vector<Point> > point_set(lines.size());
+    vector<int> classify(lines.size(), 1);
+    int max_class_num = 0;
+    for (size_t i = 0; i < lines.size(); i++) {
+        if (classify[i] == 0) continue;
+        vector<Point> &s = point_set[i];
+        traverse_line(lines[i][0], lines[i][1], [&](int v, int u) {
+            if (v_plat[v][u] == VCOLOR_EDGE) s.push_back(Point(v, u));
+        });
+    }
+    auto line_included = [&](int line_1_index, int line_2_index) {
+        if (line_1_index == line_2_index) return true;
+        vector<Point> const &ps1(point_set[line_1_index]), &ps2(point_set[line_2_index]);
+        if (ps1.size() == 0) return true;
+        int test_times = 10;
+        int similar = 0;
+        for (int i = 0; i < test_times; i++) {
+            Point p1 = ps1[rand() % ps1.size()];
+            int min_dist_2 = 0x7fffffff;
+            for (size_t j = 0; j < ps2.size(); j++) {
+                Point delta = ps2[j] - p1;
+                int dist_2 = delta.dot(delta);
+                if (dist_2 < min_dist_2) {
+                    min_dist_2 = dist_2;
+                    if (min_dist_2 < 70 * 70 / (VPLAT_MM_PER_PIXEL * VPLAT_MM_PER_PIXEL)) {
+                        similar++;
+                        break;
+                    }
+                }
+            }
+        }
+        if (similar > test_times * 0.75) return true;
+        else return false;
+    };
+    for (size_t i = 0; i < lines.size(); i++) {
+        if (classify[i] == 0) continue;
+        for (size_t j = 0; j < i; j++) {
+            if (classify[j] <= 0) continue;
+            if (line_included(i, j)) {
+                classify[i] = -classify[j];
+            } else if (line_included(j, i)){
+                classify[i] = classify[j];
+                classify[j] = -classify[i];
+            } else {
+                classify[i] = ++max_class_num;
+            }
+        }
+    }
+
 //    Mat angles(lines.size(), 1, CV_32F), labels(lines.size(), 1, CV_32S);
 //    for( size_t i = 0; i < lines.size(); i++ ) {
 //        angles.at<float>(i, 1) = lines[i][0];
