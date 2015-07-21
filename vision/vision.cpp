@@ -257,13 +257,11 @@ void Vision::get_white_lines() {
         });
         return max_continious;
     };
-    int num = 0;
     for (size_t i = 0; i < lines.size(); i ++) {
         for (int k = 0; k < 3; k ++) {
             float rho = lines[i][0] += dr[k], theta = lines[i][1];
             if (continious_white_point_in_line(rho, theta) > 50) {
                 filt_lines.push_back(Vec2f(rho, theta));
-                num ++;
             }
         }
     }
@@ -281,18 +279,8 @@ void Vision::get_white_lines() {
             double rho = filt_lines[ind][0], theta = filt_lines[ind][1];
             lines.push_back(Vec2f(rho, theta));
             count ++;
-            double a = cos(theta), b = sin(theta);
-            double x0 = a*rho, y0 = b*rho;
-            Point pt1(cvRound(x0 + 1000*(-b)),
-                      cvRound(y0 + 1000*(a)));
-            Point pt2(cvRound(x0 - 1000*(-b)),
-                      cvRound(y0 - 1000*(a)));
-            line(white_region, pt1, pt2, Scalar(128,0,255), 1, 8 );
         }
     }
-    cout << num << endl;
-    imshow("white_region", white_region);
-    waitKey();
     vector<vector<Point> > point_set(lines.size());
     vector<int> classify(lines.size(), 1);
     int max_class_num = 0;
@@ -307,40 +295,71 @@ void Vision::get_white_lines() {
         if (line_1_index == line_2_index) return true;
         vector<Point> const &ps1(point_set[line_1_index]), &ps2(point_set[line_2_index]);
         if (ps1.size() == 0) return true;
-        int test_times = 10;
+        int test_times = 100;
         int similar = 0;
         for (int i = 0; i < test_times; i++) {
             Point p1 = ps1[rand() % ps1.size()];
-            int min_dist_2 = 0x7fffffff;
             for (size_t j = 0; j < ps2.size(); j++) {
                 Point delta = ps2[j] - p1;
                 int dist_2 = delta.dot(delta);
-                if (dist_2 < min_dist_2) {
-                    min_dist_2 = dist_2;
-                    if (min_dist_2 < 70 * 70 / (VPLAT_MM_PER_PIXEL * VPLAT_MM_PER_PIXEL)) {
-                        similar++;
+                if (dist_2 < 70 * 70 / (VPLAT_MM_PER_PIXEL * VPLAT_MM_PER_PIXEL)) {
+                    similar++;
+                    break;
+                }
+            }
+        }
+        if (similar > test_times * 0.6) return true;
+        else return false;
+    };
+    int last_class_num = -1;
+    while (last_class_num != max_class_num) {
+        last_class_num = max_class_num;
+        max_class_num = 0;
+        for (size_t i = 0; i < classify.size(); i++) {
+            if (classify[i] <= 0) classify[i] = 0;
+        }
+        for (size_t i = 0; i < lines.size(); i++) {
+            if (classify[i] == 0) continue;
+            size_t j;
+            for (j = 0; j < i; j++) {
+                if (classify[j] <= 0) continue;
+                if (point_set[i].size() <= point_set[j].size()) {
+                    if (line_included(i, j)) {
+                        classify[i] = -classify[j];
+                        break;
+                    } else if (line_included(j, i)){
+                        classify[i] = classify[j];
+                        classify[j] = -classify[i];
+                        break;
+                    }
+                } else {
+                    if (line_included(j, i)){
+                        classify[i] = classify[j];
+                        classify[j] = -classify[i];
+                        break;
+                    } else if (line_included(i, j)) {
+                        classify[i] = -classify[j];
                         break;
                     }
                 }
             }
-        }
-        if (similar > test_times * 0.75) return true;
-        else return false;
-    };
-    for (size_t i = 0; i < lines.size(); i++) {
-        if (classify[i] == 0) continue;
-        for (size_t j = 0; j < i; j++) {
-            if (classify[j] <= 0) continue;
-            if (line_included(i, j)) {
-                classify[i] = -classify[j];
-            } else if (line_included(j, i)){
-                classify[i] = classify[j];
-                classify[j] = -classify[i];
-            } else {
+            if (j == i) {
                 classify[i] = ++max_class_num;
             }
         }
     }
+    for (size_t i = 0; i < lines.size(); i++) {
+        if (classify[i] <= 0) continue;
+        double rho = lines[i][0], theta = lines[i][1];
+        double a = cos(theta), b = sin(theta);
+        double x0 = a*rho, y0 = b*rho;
+        Point pt1(cvRound(x0 + 1000*(-b)),
+                  cvRound(y0 + 1000*(a)));
+        Point pt2(cvRound(x0 - 1000*(-b)),
+                  cvRound(y0 - 1000*(a)));
+        line(white_region, pt1, pt2, Scalar(128,0,255), 1, 8 );
+    }
+    imshow("white_region", white_region);
 
 //    Mat angles(lines.size(), 1, CV_32F), labels(lines.size(), 1, CV_32S);
 //    for( size_t i = 0; i < lines.size(); i++ ) {
