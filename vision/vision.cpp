@@ -220,9 +220,9 @@ void Vision::get_white_lines() {
     vector<Vec2f> lines, filt_lines;;
     HoughLines(white_region, lines, 1, CV_PI/180, 25);
     const float dr[3] = {0, 20.0 / VPLAT_MM_PER_PIXEL, -20.0 / VPLAT_MM_PER_PIXEL};
-    auto traverse_line = [](float rho, float theta, function<void(int, int)> vis) {
+    auto traverse_line = [](float rho, float theta, function<void(int v, int u)> vis) {
         float ct = cos(theta), st = sin(theta);
-        if (theta > CV_PI / 2) {
+        if (theta < CV_PI / 4 || theta > CV_PI * 3 / 4) {
             for (int h = 0; h < VPLAT_HEIGHT; h ++) {
                 int w = cvRound((rho/st-(float)h)*st/ct);
                 if (w < 0 || w >= VPLAT_WIDTH) continue;
@@ -266,19 +266,14 @@ void Vision::get_white_lines() {
         }
     }
     lines.clear();
-    vector<int> line_parti[6];
-    for (size_t i = 0; i < filt_lines.size(); i ++) {
+    int part_lines_count[6];
+    memset(part_lines_count, 0, sizeof(part_lines_count));
+    random_shuffle(filt_lines.begin(), filt_lines.end());
+    for (size_t i = 0; i < filt_lines.size(); i++) {
         int ind = (int)(filt_lines[i][1] * 6.0f / CV_PI);
-        line_parti[ind].push_back(i);
-    }
-    for (size_t i = 0; i < 6; i ++) {
-        int count = 0;
-        random_shuffle(line_parti[i].begin(), line_parti[i].end());
-        while (count < min(10, (int)line_parti[i].size())) {
-            int ind = line_parti[i][count];
-            double rho = filt_lines[ind][0], theta = filt_lines[ind][1];
-            lines.push_back(Vec2f(rho, theta));
-            count ++;
+        if (part_lines_count[ind] < 10) {
+            part_lines_count[ind]++;
+            lines.push_back(filt_lines[i]);
         }
     }
     vector<vector<Point> > point_set(lines.size());
