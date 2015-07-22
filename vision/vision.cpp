@@ -405,8 +405,10 @@ void Vision::match_robot_pos() {
     }
     for (int i = 0; i < 4; i++) {
         double delta = delta_base + CV_PI / 2 * i;
-        Point2d supposed_pos(100.0, 200.0);
+        vector<Point2d> possible_pos = {Point2d(100.0, 200.0)};
         Vec2d i_robot_to_world(cos(delta), -sin(delta)), j_robot_to_world(sin(delta), cos(delta));
-
+        for (size_t i = 0; i < possible_pos.size(); i++) {
+            Point2d supposed_pos(possible_pos[i]);
+        }
     }
 }
