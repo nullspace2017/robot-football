@@ -86,15 +86,15 @@ cv::Mat Vision::gen_platform() {
 
 void Vision::init_ground() {
     ground.clear();
-    ground.push_back(Vec4d(   0,    0, 1800,    0));
-    ground.push_back(Vec4d( 350,  640, 1450,  640));
-    ground.push_back(Vec4d(   0, 2200, 1800, 2200));
-    ground.push_back(Vec4d( 350, 3760, 1450, 3760));
-    ground.push_back(Vec4d(   0, 4400, 1800, 4400));
-    ground.push_back(Vec4d( 350,    0,  350,  640));
-    ground.push_back(Vec4d(1450,    0, 1450,  640));
-    ground.push_back(Vec4d( 350, 3760,  350, 4400));
-    ground.push_back(Vec4d(1450, 3760, 1450, 4400));
+    ground.push_back(Vec4f(   0,    0, 1800,    0));
+    ground.push_back(Vec4f( 350,  640, 1450,  640));
+    ground.push_back(Vec4f(   0, 2200, 1800, 2200));
+    ground.push_back(Vec4f( 350, 3760, 1450, 3760));
+    ground.push_back(Vec4f(   0, 4400, 1800, 4400));
+    ground.push_back(Vec4f( 350,    0,  350,  640));
+    ground.push_back(Vec4f(1450,    0, 1450,  640));
+    ground.push_back(Vec4f( 350, 3760,  350, 4400));
+    ground.push_back(Vec4f(1450, 3760, 1450, 4400));
 }
 
 void Vision::pre_copy() {
@@ -377,10 +377,10 @@ void Vision::get_white_lines() {
 }
 
 void Vision::match_robot_pos() {
-    static double const add_angle_per_times = CV_PI / 180;
+    static float const add_angle_per_times = CV_PI / 180;
     float min_error = 1e20;
-    double delta_base;
-    for (double angle = 0; angle < CV_PI / 2; angle += add_angle_per_times) {
+    float delta_base = 0;
+    for (float angle = 0; angle < CV_PI / 2; angle += add_angle_per_times) {
         float error = 0;
         for (size_t i = 0; i < white_lines.size(); i++) {
             float theta = white_lines[i][1] + angle;
@@ -393,22 +393,34 @@ void Vision::match_robot_pos() {
             delta_base = angle;
         }
     }
-    vector<Point2d> white_point_in_robot;
-    for (int i = 0; i < VPLAT_HEIGHT; i++) {
-        for (int j = 0; j < VPLAT_WIDTH; j++) {
-            if (v_plat[i][j] == VCOLOR_EDGE) {
-                double x = (double)(j - VPLAT_WIDTH / 2) * VPLAT_MM_PER_PIXEL;
-                double y = (double)(VPLAT_HEIGHT - i) * VPLAT_MM_PER_PIXEL;
-                white_point_in_robot.push_back(Point2d(x, y));
+    Mat p(800, 800, CV_8UC1, Scalar::all(0));
+    vector<Point2f> white_point_in_robot[4];
+    for (int m = 0; m < 4; m++) {
+        float delta = delta_base + CV_PI / 2 * m;
+        Vec2d i_robot_to_world(cos(delta), -sin(delta)), j_robot_to_world(sin(delta), cos(delta));
+        for (int i = 0; i < VPLAT_HEIGHT; i += 2) {
+            for (int j = 0; j < VPLAT_WIDTH; j += 2) {
+                if (v_plat[i][j] == VCOLOR_EDGE) {
+                    float x = (float)(j - VPLAT_WIDTH / 2) * VPLAT_MM_PER_PIXEL;
+                    float y = (float)(VPLAT_HEIGHT - i) * VPLAT_MM_PER_PIXEL;
+                    float xw = x * i_robot_to_world[0] + y * j_robot_to_world[0];
+                    float yw = x * i_robot_to_world[1] + y * j_robot_to_world[1];
+                    white_point_in_robot[m].push_back(Point2f(xw, yw));
+                    if (0 <= xw / 10 + 400 && xw / 10 + 400 < 800 && 0 <= yw / 10 + 400 && yw / 10 + 400 <  800)
+                        p.at<uchar>(xw / 10 + 400, yw / 10 + 400) = 255;
+                }
             }
         }
     }
-    for (int i = 0; i < 4; i++) {
-        double delta = delta_base + CV_PI / 2 * i;
-        vector<Point2d> possible_pos = {Point2d(100.0, 200.0)};
-        Vec2d i_robot_to_world(cos(delta), -sin(delta)), j_robot_to_world(sin(delta), cos(delta));
+    // imshow("p", p);
+    for (int m = 0; m < 4; m++) {
+        float delta = delta_base + CV_PI / 2 * m;
+        vector<Point2f> possible_pos = {Point2f(100.0, 200.0)};
         for (size_t i = 0; i < possible_pos.size(); i++) {
-            Point2d supposed_pos(possible_pos[i]);
+            Point2f supposed_pos(possible_pos[i]);
+            static auto nearest_line_dist = [&](Point2f p) {
+                p += supposed_pos;
+            };
         }
     }
 }

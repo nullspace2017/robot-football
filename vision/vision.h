@@ -23,9 +23,9 @@ private:
     uchar **v_plat;
     uchar *v_plat_pool;
     std::vector<cv::Vec2f> white_lines;
-    std::vector<cv::Vec4d> ground;
-    cv::Point2d robot_pos;
-    cv::Vec2d robot_direct;
+    std::vector<cv::Vec4f> ground;
+    cv::Point2f robot_pos;
+    cv::Vec2f robot_direct;
     Transform *trans;
 private:
     void init_ground();
