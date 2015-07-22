@@ -32,7 +32,7 @@ int main() {
         imshow("platform", vis->gen_platform());
         cvSetMouseCallback("window0", on_mouse, 0);
         cvSetMouseCallback("platform", on_mouse, 0);
-        if (waitKey(50) >= 0) break;
+        if (waitKey(1) >= 0) break;
     }
     delete vis;
     return 0;
