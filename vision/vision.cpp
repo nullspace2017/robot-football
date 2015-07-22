@@ -416,17 +416,33 @@ void Vision::match_robot_pos() {
         }
     }
     // imshow("p", p);
+    enum {GROUND_WIDTH = 1800, GROUND_HEIGHT = 4400, GROUND_MM_PER_PIXEL = 8};
+    Mat view_ground(GROUND_HEIGHT / GROUND_MM_PER_PIXEL, GROUND_WIDTH / GROUND_MM_PER_PIXEL, CV_8UC3, Scalar::all(0));
+    auto xy_to_ground_point = [&](double xw, double yw) {
+        return Point(xw / GROUND_MM_PER_PIXEL, (GROUND_HEIGHT - yw) / GROUND_MM_PER_PIXEL);
+    };
+    for (size_t i = 0; i < ground.size(); i++) {
+        Vec4f const &l(ground[i]);
+        line(view_ground, xy_to_ground_point(l[0], l[1]), xy_to_ground_point(l[2], l[3]), Scalar::all(255), 2);
+    }
     vector<Point2f> ground_line_normal;
     for (size_t i = 0; i < ground.size(); i++) {
         Vec4f line = ground[i];
         Vec2f n(line[3] - line[1], line[0] - line[2]);
         ground_line_normal.push_back(n / sqrt(n.dot(n)));
     }
-    static auto nearest_line_dist = [&](Point2f const &p) {
+    static auto nearest_line_dist_2 = [&](Point2f const &p) {
         float min_dist = 1e20;
         for (size_t i = 0; i < ground.size(); i++) {
-            Vec4f line = ground[i];
-            float dist = abs(ground_line_normal[i].dot(Point2f(p.x - line[0], p.y - line[1])));
+            Vec4f const &line(ground[i]);
+            Point2f p1(line[0], line[1]), p2(line[2], line[3]);
+            float dist;
+            Point2f vec_p_p1 = p - p1;
+            Point2f vec_p_p2 = p - p2;
+            Point2f vec_p2_p1 = p2 - p1;
+            if (vec_p2_p1.dot(vec_p_p1) <= 0) dist = vec_p_p1.dot(vec_p_p1);
+            else if (vec_p2_p1.dot(vec_p_p2) >= 0) dist = vec_p_p2.dot(vec_p_p2);
+            else { dist = ground_line_normal[i].dot(vec_p_p1); dist *= dist; }
             if (dist < min_dist)
                 min_dist = dist;
         }
@@ -437,7 +453,7 @@ void Vision::match_robot_pos() {
     min_error = 1e20;
     for (int m = 0; m < 4; m++) {
         float delta = delta_base + CV_PI / 2 * m;
-        vector<Point2f> possible_pos;// = {Point2f(100.0, 200.0)};
+        vector<Point2f> possible_pos;
         set<int> ppos_x, ppos_y;
         for (size_t j = 0; j < white_lines.size(); j ++) {
             float rho = white_lines[j][0], theta = white_lines[j][1] + delta;
@@ -455,19 +471,20 @@ void Vision::match_robot_pos() {
                     }
                 }
             }
-
         }
+        possible_pos.reserve(ppos_x.size());
         set<int>::iterator xit, yit;
         for (xit = ppos_x.begin(); xit != ppos_x.end(); xit ++)
             for (yit = ppos_y.begin(); yit != ppos_y.end(); yit ++) {
                 possible_pos.push_back(Point2f(*xit, *yit));
+                line(view_ground, xy_to_ground_point(*xit, *yit), xy_to_ground_point(*xit, *yit), Scalar::all(127), 3);
             }
         for (size_t i = 0; i < possible_pos.size(); i++) {
             Point2f supposed_pos(possible_pos[i]);
             float sum_error = 0;
             for (auto it = white_point_in_robot[m].begin(); it != white_point_in_robot[m].end(); it++) {
-                float err = nearest_line_dist(*it + supposed_pos);
-                sum_error += err * err;
+                float err = nearest_line_dist_2(*it + supposed_pos);
+                sum_error += err;
                 if (sum_error >= min_error)
                     break;
             }
@@ -481,4 +498,8 @@ void Vision::match_robot_pos() {
     cout << min_error << endl;
     cout << min_delta << endl;
     cout << min_pos << endl;
+    line(view_ground, xy_to_ground_point(min_pos.x, min_pos.y), xy_to_ground_point(min_pos.x, min_pos.y), Scalar(0, 255, 0), 5);
+    line(view_ground, xy_to_ground_point(min_pos.x, min_pos.y),
+         xy_to_ground_point(min_pos.x + 10000 * sin(min_delta), min_pos.y + 10000 * cos(min_delta)), Scalar(0, 255, 0), 1);
+    imshow("view_ground", view_ground);
 }
