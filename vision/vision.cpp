@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cassert>
 #include <algorithm>
+#include <set>
 #include <functional>
 using namespace std;
 using namespace cv;
@@ -95,6 +96,8 @@ void Vision::init_ground() {
     ground.push_back(Vec4f(1450,    0, 1450,  640));
     ground.push_back(Vec4f( 350, 3760,  350, 4400));
     ground.push_back(Vec4f(1450, 3760, 1450, 4400));
+    ground.push_back(Vec4f(   0,    0,    0, 4400));
+    ground.push_back(Vec4f(1800,    0, 1800, 4400));
 }
 
 void Vision::pre_copy() {
@@ -434,7 +437,31 @@ void Vision::match_robot_pos() {
     min_error = 1e20;
     for (int m = 0; m < 4; m++) {
         float delta = delta_base + CV_PI / 2 * m;
-        vector<Point2f> possible_pos = {Point2f(100.0, 200.0)};
+        vector<Point2f> possible_pos;// = {Point2f(100.0, 200.0)};
+        set<int> ppos_x, ppos_y;
+        for (size_t j = 0; j < white_lines.size(); j ++) {
+            float rho = white_lines[j][0], theta = white_lines[j][1] + delta;
+            while (theta >= CV_PI) theta -= CV_PI;
+            if (abs(theta - CV_PI / 2) <= CV_PI / 4) {
+                for (size_t k = 0; k < ground.size(); k ++) {
+                    if (abs(ground[k][1] - ground[k][3]) < 1e-6) {
+                        ppos_y.insert(cvRound(abs(ground[k][1] - rho)));
+                    }
+                }
+            } else {
+                for (size_t k = 0; k < ground.size(); k ++) {
+                    if (abs(ground[k][0] - ground[k][2]) < 1e-6) {
+                        ppos_x.insert(abs(cvRound(ground[k][2] - rho)));
+                    }
+                }
+            }
+
+        }
+        set<int>::iterator xit, yit;
+        for (xit = ppos_x.begin(); xit != ppos_x.end(); xit ++)
+            for (yit = ppos_y.begin(); yit != ppos_y.end(); yit ++) {
+                possible_pos.push_back(Point2f(*xit, *yit));
+            }
         for (size_t i = 0; i < possible_pos.size(); i++) {
             Point2f supposed_pos(possible_pos[i]);
             float sum_error = 0;
