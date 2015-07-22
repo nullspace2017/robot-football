@@ -413,14 +413,45 @@ void Vision::match_robot_pos() {
         }
     }
     // imshow("p", p);
+    vector<Point2f> ground_line_normal;
+    for (size_t i = 0; i < ground.size(); i++) {
+        Vec4f line = ground[i];
+        Vec2f n(line[3] - line[1], line[0] - line[2]);
+        ground_line_normal.push_back(n / sqrt(n.dot(n)));
+    }
+    static auto nearest_line_dist = [&](Point2f const &p) {
+        float min_dist = 1e20;
+        for (size_t i = 0; i < ground.size(); i++) {
+            Vec4f line = ground[i];
+            float dist = abs(ground_line_normal[i].dot(Point2f(p.x - line[0], p.y - line[1])));
+            if (dist < min_dist)
+                min_dist = dist;
+        }
+        return min_dist;
+    };
+    float min_delta = 0;
+    Point2f min_pos(0.0, 0.0);
+    min_error = 1e20;
     for (int m = 0; m < 4; m++) {
         float delta = delta_base + CV_PI / 2 * m;
         vector<Point2f> possible_pos = {Point2f(100.0, 200.0)};
         for (size_t i = 0; i < possible_pos.size(); i++) {
             Point2f supposed_pos(possible_pos[i]);
-            static auto nearest_line_dist = [&](Point2f p) {
-                p += supposed_pos;
-            };
+            float sum_error = 0;
+            for (auto it = white_point_in_robot[m].begin(); it != white_point_in_robot[m].end(); it++) {
+                float err = nearest_line_dist(*it + supposed_pos);
+                sum_error += err * err;
+                if (sum_error >= min_error)
+                    break;
+            }
+            if (sum_error < min_error) {
+                min_error = sum_error;
+                min_delta = delta;
+                min_pos = supposed_pos;
+            }
         }
     }
+    cout << min_error << endl;
+    cout << min_delta << endl;
+    cout << min_pos << endl;
 }
