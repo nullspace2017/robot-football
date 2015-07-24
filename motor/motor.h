@@ -8,7 +8,9 @@ class Motor
 {
 public:
     Motor();
+    ~Motor();
     void go(double radius, double speed);
+    void stop();
     std::vector<std::pair<cv::Vec2d, cv::Vec2d> > get_delta();
 private:
     std::vector<std::pair<cv::Vec2d, cv::Vec2d> > history;
