@@ -1,11 +1,13 @@
 #include <iostream>
 #include <cmath>
+#include <unistd.h>
 #include <opencv2/opencv.hpp>
 #include "motor.h"
 
 using namespace std;
 using namespace cv;
 
+#if 0
 int main() {
     Motor motor;
     double sum_distance = 0.0, sum_angle = 0.0;
@@ -21,3 +23,14 @@ int main() {
     }
     return 0;
 }
+#else
+int main() {
+    Motor *motor = Motor::get_instance();
+    motor->test_ctrl_send(4, 4);
+    usleep(500000);
+    motor->test_ctrl_send(0, 0);
+    Motor::destroy_instance();
+    return 0;
+}
+
+#endif
