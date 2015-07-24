@@ -1,5 +1,6 @@
 #include "location.h"
 #include <iostream>
+#include <cmath>
 #include <stdexcept>
 
 using namespace std;
