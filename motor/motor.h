@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <opencv2/opencv.hpp>
+#include <sys/time.h>
 
 class Motor {
 public:
@@ -16,11 +17,14 @@ private:
     Motor();
     ~Motor();
     static Motor *m_instance;
+    struct timeval dw_time_start;
+    double last_radius, last_speed;
+    std::vector<std::pair<cv::Vec2d, cv::Vec2d> > history;
+    enum { MAX_SPEED_SELECTION = 50 };
+    double get_speed(int speed_level, bool is_left_wheel = false);
+    void update_location();
 private:
     int m_motor_fd;
-    std::vector<std::pair<cv::Vec2d, cv::Vec2d> > history;
-    enum { SPEED_SELECTION_COUNT = 6 };
-    static double const const_speed[SPEED_SELECTION_COUNT]; // order: asc
     void tty_init();
     void ctrl_init();
     void ctrl_send(void *buf, int len);
