@@ -87,6 +87,210 @@ cv::Mat Vision::gen_platform() {
     return out;
 }
 
+void Vision::get_ball() { //huanglj
+    int iLowH = 100, iHighH = 145, iLowS = 40, iHighS = 255, iLowV = 60, iHighV = 255;
+
+    Mat imgHSV;
+    cvtColor(pic, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
+
+    Mat imgThresholded;
+    inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholded); //Threshold the image
+    imshow("old thresh", imgThresholded);
+
+    for (int i = 0; i < height; i ++) {
+        uchar *dt = imgThresholded.ptr<uchar>(i);
+//        uchar *di = pic.ptr<uchar>(i);
+        for (int j = 0; j < width; j ++) {
+//            uchar b = di[j*pic.channels()], g = di[j*pic.channels()+1], r = di[j*pic.channels()+2];
+            if (v[i][j] == VCOLOR_WHITE || v[i][j] == VCOLOR_EDGE || v[i][j] == VCOLOR_GREEN) {
+                dt[j] = 0;
+                continue;
+            }
+        }
+    }
+
+    imshow("thresh 1", imgThresholded);
+
+
+    //morphological closing (removes small holes from the foreground)
+    dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(10, 10)) );
+    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(10, 10)) );
+
+    //morphological opening (removes small objects from the foreground)
+    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(20, 20)) );
+    dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(20, 20)) );
+    imshow("thresh", imgThresholded);
+
+    for (int i = 0; i < height; i ++) {
+        uchar *dt = imgThresholded.ptr<uchar>(i);
+        for (int j = 0; j < width; j ++) {
+            if (dt[j] == 255) v[i][j] = VCOLOR_BALL_POSSIBLE;
+        }
+    }
+
+    for (int i = 0; i < height; i += 2) {
+        for (int j = 0; j < width; j += 2) {
+            if (v[i][j] != VCOLOR_BALL_POSSIBLE) continue;
+            static int const dx = 20, dy = 20;
+            static double const gr_rate = 0.4;
+            int x1 = i - dx, x2 = i + dx;
+            int y1 = j - dy, y2 = j + dy;
+            cut_to_rect(x1, y1);
+            cut_to_rect(x2, y2);
+            int cnt_gr = 0, cnt_total = 0;
+            static auto add_to_cnt = [&](uchar color) {
+                cnt_total ++;
+                if (color == VCOLOR_GREEN) cnt_gr ++;
+            };
+            for (int k = x1; k <= x2; k++) {
+                add_to_cnt(v[k][y1]);
+                add_to_cnt(v[k][y2]);
+            }
+            for (int k = y1 + 1; k < y2; k++) {
+                add_to_cnt(v[x1][k]);
+                add_to_cnt(v[x2][k]);
+            }
+
+            if (cnt_gr > cnt_total*gr_rate) {
+                v[i][j] = VCOLOR_BALL;
+                expand_to_ball(i, j);
+            }
+        }
+    }
+
+    int cntx = 0, cnty = 0, cnt_total = 0;
+    double cntr = 0;
+    for (int i = 0; i < height; i ++) {
+        for (int j = 0; j < width; j ++) {
+            if (v[i][j] == VCOLOR_BALL) {
+                cnt_total ++;
+                cntx += j;
+                cnty += i;
+            }
+        }
+    }
+    if (cnt_total == 0) {
+        hasBall = false;
+    } else {
+        hasBall = true;
+        ballx = cntx/cnt_total;
+        bally = cnty/cnt_total;
+        for (int i = 0; i < height; i ++) {
+            for (int j = 0; j < width; j ++) {
+                if (v[i][j] == VCOLOR_BALL) {
+                    cntr += sqrt(double((j - ballx)*(j - ballx) + (i - bally)*(i - bally)));
+                }
+            }
+        }
+//        ballr = cntr/cnt_total * 1.5;
+        ballr = pow(1.5*cntr/M_PI, 1.0/3) * 1.2;
+        cout << ballx << ' ' << bally << ' ' << ballr << '\n';
+        cout << cntr << '\n';
+
+        //print
+        int x1 = ballx - ballr, x2 = ballx + ballr;
+        int y1 = bally - ballr, y2 = bally + ballr;
+        cout << x1 << ' ' << y1 << '\n';
+        cout << x2 << ' ' << y2 << '\n';
+        cut_to_rect(x1, y1);
+        cut_to_rect(x2, y2);
+        for (int k = x1; k <= x2; k++) {
+            v[y1][k] = VCOLOR_BALL_POSSIBLE;
+            v[y2][k] = VCOLOR_BALL_POSSIBLE;
+        }
+        for (int k = y1 + 1; k < y2; k++) {
+            v[k][x1] = VCOLOR_BALL_POSSIBLE;
+            v[k][x2] = VCOLOR_BALL_POSSIBLE;
+        }
+    }
+}
+
+void Vision::get_ball_hough() { //huanglj
+    int iLowH = 100, iHighH = 170, iLowS = 40, iHighS = 255, iLowV = 60, iHighV = 255;
+
+    Mat imgHSV;
+    cvtColor(pic, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
+
+    Mat imgThresholded;
+    inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholded); //Threshold the image
+
+    for (int i = 0; i < height; i ++) {
+        uchar *dt = imgThresholded.ptr<uchar>(i);
+        uchar *di = pic.ptr<uchar>(i);
+        for (int j = 0; j < width; j ++) {
+            uchar b = di[j*pic.channels()], g = di[j*pic.channels()+1], r = di[j*pic.channels()+2];
+            if (b > 100 && g < 80 && r < 80) {
+                dt[j] = 0;
+                continue;
+            }
+            if (g < 60 && r > 100) {
+                dt[j] = 0;
+                continue;
+            }
+            if (v[i][j] == VCOLOR_WHITE || v[i][j] == VCOLOR_EDGE || v[i][j] == VCOLOR_GREEN) {
+                dt[j] = 0;
+                continue;
+            }
+        }
+    }
+    imshow("thresh", imgThresholded);
+
+    Mat img = pic, gray, can;
+    cvtColor(img, gray, CV_BGR2GRAY);
+    // smooth it, otherwise a lot of false circles may be detected
+    Canny(img, can, 50, 100);
+    imshow("can", can);
+    GaussianBlur(gray, gray, Size(9, 9), 2, 2 );
+    vector<Vec3f> circles;
+    HoughCircles(gray, circles, CV_HOUGH_GRADIENT, 1.5, 20, 100, 50);
+    cout << "circles.size:" << circles.size() << '\n';
+
+    int isBall = -1;
+    double max_rate = 0;
+    for (size_t i = 0; i < circles.size(); i ++) {
+        int centerx = cvRound(circles[i][0]), centery = cvRound(circles[i][1]), centerr = cvRound(circles[i][2]);
+        int x1 = centerx - centerr, x2 = centerx + centerr;
+        int y1 = centery - centerr, y2 = centery + centerr;
+        cut_to_rect(x1, y1);
+        cut_to_rect(x2, y2);
+        int cnt_total = 0, cnt_ball = 0;
+        double ball_rate = 0.3;
+        for (int y = y1; y <y2; y ++) {
+            double tempc = centerr, tempa = fabs(centery - y);
+            double tempb = sqrt(tempc*tempc - tempa*tempa);
+            x1 = centerx - (int)tempb;
+            x2 = centerx + (int)tempb;
+            cut_to_rect(x1, y1);
+            cut_to_rect(x2, y2);
+            uchar *dt = imgThresholded.ptr<uchar>(y);
+            for (int x = x1; x < x2; x ++) {
+                cnt_total ++;
+                if (dt[x] == 255) cnt_ball ++;
+            }
+        }
+        double temp_rate = cnt_ball*1.0/cnt_total;
+        if (temp_rate > ball_rate && temp_rate > max_rate && centerr > 10) {
+            isBall = i;
+            max_rate = temp_rate;
+        }
+        cout << i << ' ' << centerx << ' ' << centery << '\n';
+        cout << i << ' ' << cnt_ball*1.0/cnt_total << '\n';
+    }
+    cout << "isBall:" << isBall << '\n';
+
+    for (size_t i = 0; i < circles.size(); i++ ) {
+        Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+        int radius = cvRound(circles[i][2]);
+        circle(img, center, 3, Scalar(0,255,0), -1, 8, 0 );
+        if (isBall == (int)i) {
+            circle(img, center, radius, Scalar(255,0,0), 1, 8, 0);
+        } else {
+            circle(img, center, radius, Scalar(0,0,255), 1, 8, 0 );
+        }
+    }
+    imshow("circles", img );
+}
+
 void Vision::init_ground() {
     ground.clear();
     ground.push_back(Vec4f(   0,    0, 1800,    0));
@@ -479,4 +683,17 @@ void Vision::match_robot_pos() {
     line(view_ground, xy_to_ground_point(min_pos.x, min_pos.y),
          xy_to_ground_point(min_pos.x + 10000 * sin(min_delta), min_pos.y + 10000 * cos(min_delta)), Scalar(0, 255, 0), 1);
     imshow("view_ground", view_ground);
+}
+
+void Vision::expand_to_ball(int x, int y) { //huanglj
+    int vx[] = {x - 1, x + 1, x, x};
+    int vy[] = {y, y, y - 1, y + 1};
+    for (int i = 0; i < 4; i++) {
+        int nx = vx[i];
+        int ny = vy[i];
+        if (in_rect(nx, ny) && v[nx][ny] == VCOLOR_BALL_POSSIBLE) {
+            v[nx][ny] = VCOLOR_BALL;
+            expand_to_ball(nx, ny);
+        }
+    }
 }

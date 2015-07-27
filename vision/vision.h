@@ -10,6 +10,8 @@ public:
     Vision(int height, int width, Transform *trans);
     ~Vision();
     void input(cv::Mat const &in);
+    void get_ball(); //huanglj
+    void get_ball_hough(); //huanglj
     cv::Mat gen_as_pic();
     cv::Mat gen_platform();
 private:
@@ -28,10 +30,13 @@ private:
     cv::Point2f robot_pos;
     cv::Vec2f robot_direct;
     Transform *trans;
+    int ballx, bally, ballr; //huanglj
+    bool hasBall;
 private:
     void init_ground();
     void pre_copy();
     void get_edge_white();
+    void expand_to_ball(int x, int y); //huanglj
     void update_plat();
     void get_white_lines();
     void match_robot_pos();
