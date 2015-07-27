@@ -102,7 +102,7 @@ void Vision::get_ball() { //huanglj
 //        uchar *di = pic.ptr<uchar>(i);
         for (int j = 0; j < width; j ++) {
 //            uchar b = di[j*pic.channels()], g = di[j*pic.channels()+1], r = di[j*pic.channels()+2];
-            if (v[i][j] == VCOLOR_WHITE || v[i][j] == VCOLOR_EDGE || v[i][j] == VCOLOR_GREEN) {
+            if (v_pic[i][j] == VCOLOR_WHITE || v_pic[i][j] == VCOLOR_EDGE || v_pic[i][j] == VCOLOR_GREEN) {
                 dt[j] = 0;
                 continue;
             }
@@ -124,13 +124,13 @@ void Vision::get_ball() { //huanglj
     for (int i = 0; i < height; i ++) {
         uchar *dt = imgThresholded.ptr<uchar>(i);
         for (int j = 0; j < width; j ++) {
-            if (dt[j] == 255) v[i][j] = VCOLOR_BALL_POSSIBLE;
+            if (dt[j] == 255) v_pic[i][j] = VCOLOR_BALL_POSSIBLE;
         }
     }
 
     for (int i = 0; i < height; i += 2) {
         for (int j = 0; j < width; j += 2) {
-            if (v[i][j] != VCOLOR_BALL_POSSIBLE) continue;
+            if (v_pic[i][j] != VCOLOR_BALL_POSSIBLE) continue;
             static int const dx = 20, dy = 20;
             static double const gr_rate = 0.4;
             int x1 = i - dx, x2 = i + dx;
@@ -143,16 +143,16 @@ void Vision::get_ball() { //huanglj
                 if (color == VCOLOR_GREEN) cnt_gr ++;
             };
             for (int k = x1; k <= x2; k++) {
-                add_to_cnt(v[k][y1]);
-                add_to_cnt(v[k][y2]);
+                add_to_cnt(v_pic[k][y1]);
+                add_to_cnt(v_pic[k][y2]);
             }
             for (int k = y1 + 1; k < y2; k++) {
-                add_to_cnt(v[x1][k]);
-                add_to_cnt(v[x2][k]);
+                add_to_cnt(v_pic[x1][k]);
+                add_to_cnt(v_pic[x2][k]);
             }
 
             if (cnt_gr > cnt_total*gr_rate) {
-                v[i][j] = VCOLOR_BALL;
+                v_pic[i][j] = VCOLOR_BALL;
                 expand_to_ball(i, j);
             }
         }
@@ -162,7 +162,7 @@ void Vision::get_ball() { //huanglj
     double cntr = 0;
     for (int i = 0; i < height; i ++) {
         for (int j = 0; j < width; j ++) {
-            if (v[i][j] == VCOLOR_BALL) {
+            if (v_pic[i][j] == VCOLOR_BALL) {
                 cnt_total ++;
                 cntx += j;
                 cnty += i;
@@ -177,7 +177,7 @@ void Vision::get_ball() { //huanglj
         bally = cnty/cnt_total;
         for (int i = 0; i < height; i ++) {
             for (int j = 0; j < width; j ++) {
-                if (v[i][j] == VCOLOR_BALL) {
+                if (v_pic[i][j] == VCOLOR_BALL) {
                     cntr += sqrt(double((j - ballx)*(j - ballx) + (i - bally)*(i - bally)));
                 }
             }
@@ -195,12 +195,12 @@ void Vision::get_ball() { //huanglj
         cut_to_rect(x1, y1);
         cut_to_rect(x2, y2);
         for (int k = x1; k <= x2; k++) {
-            v[y1][k] = VCOLOR_BALL_POSSIBLE;
-            v[y2][k] = VCOLOR_BALL_POSSIBLE;
+            v_pic[y1][k] = VCOLOR_BALL_POSSIBLE;
+            v_pic[y2][k] = VCOLOR_BALL_POSSIBLE;
         }
         for (int k = y1 + 1; k < y2; k++) {
-            v[k][x1] = VCOLOR_BALL_POSSIBLE;
-            v[k][x2] = VCOLOR_BALL_POSSIBLE;
+            v_pic[k][x1] = VCOLOR_BALL_POSSIBLE;
+            v_pic[k][x2] = VCOLOR_BALL_POSSIBLE;
         }
     }
 }
@@ -227,7 +227,7 @@ void Vision::get_ball_hough() { //huanglj
                 dt[j] = 0;
                 continue;
             }
-            if (v[i][j] == VCOLOR_WHITE || v[i][j] == VCOLOR_EDGE || v[i][j] == VCOLOR_GREEN) {
+            if (v_pic[i][j] == VCOLOR_WHITE || v_pic[i][j] == VCOLOR_EDGE || v_pic[i][j] == VCOLOR_GREEN) {
                 dt[j] = 0;
                 continue;
             }
@@ -691,8 +691,8 @@ void Vision::expand_to_ball(int x, int y) { //huanglj
     for (int i = 0; i < 4; i++) {
         int nx = vx[i];
         int ny = vy[i];
-        if (in_rect(nx, ny) && v[nx][ny] == VCOLOR_BALL_POSSIBLE) {
-            v[nx][ny] = VCOLOR_BALL;
+        if (in_rect(nx, ny) && v_pic[nx][ny] == VCOLOR_BALL_POSSIBLE) {
+            v_pic[nx][ny] = VCOLOR_BALL;
             expand_to_ball(nx, ny);
         }
     }
