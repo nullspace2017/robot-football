@@ -16,7 +16,9 @@ cv::Vec3b const Vision::const_vcolors[] = {
     Vec3b(0, 0, 0),
     Vec3b(0, 0, 255),
     Vec3b(255, 0, 0),
-    Vec3b(31, 31, 31)
+    Vec3b(31, 31, 31),
+    Vec3b(0,0,127), //huanglj
+    Vec3b(127,0,0) //huanglj
 };
 
 Vision::Vision(int height, int width, Transform *trans):
