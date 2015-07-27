@@ -12,17 +12,21 @@ using namespace cv;
 Motor *Motor::m_instance = 0;
 
 Motor::Motor() {
+    initialized = false;
     tty_init();
     ctrl_init();
     static bool exit_binded = false;
     if (!exit_binded) {
         signal(SIGINT, [](int signo) {
-            Motor::get_instance()->stop();
+            if (Motor::has_instance())
+                Motor::get_instance()->stop();
             signal(signo, SIG_DFL);
             raise(signo);
         });
         exit_binded = true;
     }
+    initialized = true;
+    ctrl_stop();
 }
 
 Motor::~Motor() {
@@ -43,11 +47,15 @@ void Motor::destroy_instance() {
     }
 }
 
+bool Motor::has_instance() {
+    return m_instance != 0;
+}
+
 static double const d_wheel = 310.0;
 
 void Motor::go(double radius, double speed) {
     update_location();
-    auto select_best_speed = [&](double expected, bool is_left_wheel = false) {
+    auto select_best_speed = [&](double expected, bool is_left_wheel) {
         double min_delta = 1e20;
         int ind = 0;
         for (int i = -MAX_SPEED_SELECTION; i <= MAX_SPEED_SELECTION; i++) {
@@ -59,14 +67,23 @@ void Motor::go(double radius, double speed) {
         }
         return ind;
     };
-    auto update_last_record = [&](int vl_ind, int vr_ind) {
-        double vl = get_speed(vl_ind);
-        double vr = get_speed(vr_ind);
-    };
-    if (std::isinf(radius)) {
+    speed *= std::min(get_speed(MAX_SPEED_SELECTION, false), get_speed(MAX_SPEED_SELECTION, true));
+    static double const eps = 1e-6;
+    if (speed < eps) {
+        ctrl_stop();
+    } else if (std::isinf(radius)) {
         int vl = select_best_speed(speed, true);
         int vr = select_best_speed(speed, false);
-        update_last_record(vl, vr);
+        ctrl_move(vl, vr);
+    } else if (radius >= 0) {
+        int vr = select_best_speed(speed, false);
+        double vl_expected = get_speed(vr, false) * (radius - d_wheel / 2) / (radius + d_wheel / 2);
+        int vl = select_best_speed(vl_expected, true);
+        ctrl_move(vl, vr);
+    } else { // radius < 0
+        int vl = select_best_speed(speed, true);
+        double vr_expected = get_speed(vl, true) * (radius + d_wheel / 2) / (radius - d_wheel / 2);
+        int vr = select_best_speed(vr_expected, false);
         ctrl_move(vl, vr);
     }
 }
@@ -83,33 +100,50 @@ std::vector<std::pair<cv::Vec2d, cv::Vec2d> > Motor::get_delta() {
 }
 
 double Motor::get_speed(int speed_level, bool) { // mm/s
-    return speed_level * 10.0;
+    static double const sp10[12] = {0.0, 25.0, 50.0, 75.5, 101.0, 127.0, 154.0, 180.0, 208.5, 232.0, 257.5, 281.5};
+    int level = speed_level < 0 ? -speed_level : speed_level;
+    double speed;
+    if (level > MAX_SPEED_SELECTION)
+        level = MAX_SPEED_SELECTION;
+    int a = level / 5;
+    int b = level % 5;
+    if (b == 0) {
+        speed = sp10[a] * 2.0;
+    } else {
+        double speed0 = sp10[a] * 2.0;
+        double speed1 = sp10[a + 1] * 2.0;
+        speed = speed0 + (speed1 - speed0) * b / 5;
+    }
+    return speed_level < 0 ? -speed : speed;
 }
 
 void Motor::update_location() {
-    struct timeval dw_time_end;
+    timeval dw_time_end;
     gettimeofday(&dw_time_end, 0);
     time_t delta_time_1e6 = 1000000 * (dw_time_end.tv_sec - dw_time_start.tv_sec) +
             (dw_time_end.tv_usec - dw_time_start.tv_usec);
     if (delta_time_1e6 == 0) return;
     double delta_time = delta_time_1e6 / 1000000.0;
     dw_time_start = dw_time_end;
-    if (last_speed == 0) return;
+
+    double radius, speed;
+    double vl = get_speed(last_vl, true);
+    double vr = get_speed(last_vr, false);
+    if (fabs(vl) > fabs(vr)) speed = vl;
+    else speed = vr;
+    radius = (vl + vr) / (vr - vl) * (d_wheel / 2);
+    if (speed == 0) return;
     Vec2d move, direct;
-    if (std::isinf(last_radius)) {
-        move = Vec2d(0, last_speed * delta_time);
+    if (std::isinf(radius)) {
+        move = Vec2d(0, speed * delta_time);
         direct = Vec2d(0, 1);
-    } else if (last_radius == 0.0 || last_radius == -0.0) {
-        double theta = last_speed * delta_time / (d_wheel / 2);
-        move = Vec2d(0, 0);
-        direct = Vec2d(-sin(theta), cos(theta));
-    } else if (last_radius >= 0) {
-        double theta = last_speed * delta_time / (last_radius + d_wheel / 2);
-        move = Vec2d(sin(theta), cos(theta) - 1) * last_radius;
+    } else if (radius >= 0) {
+        double theta = speed * delta_time / (radius + d_wheel / 2);
+        move = Vec2d(sin(theta), cos(theta) - 1) * radius;
         direct = Vec2d(-sin(theta), cos(theta));
     } else {
-        double theta = last_speed * delta_time / (-last_radius + d_wheel / 2);
-        move = Vec2d(sin(theta), 1 - cos(theta)) * last_radius;
+        double theta = speed * delta_time / (-radius + d_wheel / 2);
+        move = Vec2d(sin(theta), 1 - cos(theta)) * radius;
         direct = Vec2d(sin(theta), cos(theta));
     }
     history.push_back(make_pair(move, direct));
@@ -160,16 +194,21 @@ void Motor::ctrl_init() {
         throw MotorException("Motor::ctrl_init(): write fd error");
     if (read(m_motor_fd, buf, sizeof(buf)) < 0)
         throw MotorException("Motor::ctrl_init(): read fd error");
-    ctrl_stop();
     cout << "    OK" << endl;
 }
 
 void Motor::ctrl_send(void *buf, int len) {
+    if (!initialized) {
+        throw MotorException("Motor::ctrl_send(void *, int): not initialized");
+    }
     if (write(m_motor_fd, buf, len) != len)
         throw MotorException("Motor::ctrl_send(void *, in): write error");
 }
 
 void Motor::ctrl_move(int speed_left, int speed_right) {
+    cout << speed_left << '\t' << speed_right << endl;
+    last_vl = speed_left;
+    last_vr = speed_right;
     char buf_ctrl2motor[5];
     buf_ctrl2motor[0] = HEAD3;
     buf_ctrl2motor[1] = speed_left;
@@ -180,6 +219,7 @@ void Motor::ctrl_move(int speed_left, int speed_right) {
 }
 
 void Motor::ctrl_stop() {
+    last_vl = last_vr = 0;
     char buf_ctrl2motor[1];
     buf_ctrl2motor[0] = STOP;
     ctrl_send(buf_ctrl2motor, 1);

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <unistd.h>
 #include "motor.h"
 #include "location.h"
 
@@ -12,11 +13,12 @@ int main() {
     while (1) {
         Vec2d loc = location.get_location().first;
         cout << loc << endl;
-        if (loc.dot(loc) > 100 * 100) {
+        if (loc.dot(loc) > 1800 * 1800) {
             motor->stop();
             break;
         }
-        motor->go(-2, 1.0);
+        motor->go(INFINITY, 0.4);
+        usleep(50000);
     }
     Motor::destroy_instance();
     return 0;

@@ -9,6 +9,7 @@ class Motor {
 public:
     static Motor *get_instance();
     static void destroy_instance();
+    static bool has_instance();
     void go(double radius, double speed);
     void stop();
     std::vector<std::pair<cv::Vec2d, cv::Vec2d> > get_delta();
@@ -17,11 +18,13 @@ private:
     Motor();
     ~Motor();
     static Motor *m_instance;
-    struct timeval dw_time_start;
-    double last_radius, last_speed;
+    bool initialized;
+    timeval dw_time_start;
+    //double last_radius, last_speed;
+    int last_vl, last_vr;
     std::vector<std::pair<cv::Vec2d, cv::Vec2d> > history;
     enum { MAX_SPEED_SELECTION = 50 };
-    double get_speed(int speed_level, bool is_left_wheel = false);
+    double get_speed(int speed_level, bool is_left_wheel);
     void update_location();
 private:
     int m_motor_fd;
