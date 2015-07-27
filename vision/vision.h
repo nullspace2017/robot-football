@@ -10,10 +10,13 @@ public:
     Vision(int height, int width, Transform *trans);
     ~Vision();
     void input(cv::Mat const &in);
+    void get_ball(); //huanglj
+    void get_ball_hough(); //huanglj
     cv::Mat gen_as_pic();
     cv::Mat gen_platform();
 private:
-    enum VCOLOR { VCOLOR_WHITE = 0, VCOLOR_GREEN, VCOLOR_BACKGROUND, VCOLOR_EDGE, VCOLOR_EDGE_POSSIBLE, VCOLOR_OUT_OF_RANGE, VCOLOR_COUNT };
+    enum VCOLOR { VCOLOR_WHITE = 0, VCOLOR_GREEN, VCOLOR_BACKGROUND, VCOLOR_EDGE,
+                    VCOLOR_EDGE_POSSIBLE, VCOLOR_OUT_OF_RANGE, VCOLOR_BALL, VCOLOR_BALL_POSSIBLE, VCOLOR_COUNT };
     enum { VPLAT_HEIGHT = 800, VPLAT_WIDTH = 800, VPLAT_MM_PER_PIXEL = 5 };
     static cv::Vec3b const const_vcolors[VCOLOR_COUNT];
     cv::Mat pic;
@@ -27,10 +30,13 @@ private:
     cv::Point2f robot_pos;
     cv::Vec2f robot_direct;
     Transform *trans;
+    int ballx, bally, ballr; //huanglj
+    bool hasBall;
 private:
     void init_ground();
     void pre_copy();
     void get_edge_white();
+    void expand_to_ball(int x, int y); //huanglj
     void update_plat();
     void get_white_lines();
     void match_robot_pos();
