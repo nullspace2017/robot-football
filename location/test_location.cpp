@@ -17,7 +17,7 @@ int main() {
             motor->stop();
             break;
         }
-        motor->go(INFINITY, 0.4);
+        motor->go(-2000, 0.4);
         usleep(50000);
     }
     Motor::destroy_instance();

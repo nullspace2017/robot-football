@@ -19,7 +19,7 @@ Motor::Motor() {
     if (!exit_binded) {
         signal(SIGINT, [](int signo) {
             if (Motor::has_instance())
-                Motor::get_instance()->stop();
+                Motor::destroy_instance();
             signal(signo, SIG_DFL);
             raise(signo);
         });
@@ -69,7 +69,7 @@ void Motor::go(double radius, double speed) {
     };
     speed *= std::min(get_speed(MAX_SPEED_SELECTION, false), get_speed(MAX_SPEED_SELECTION, true));
     static double const eps = 1e-6;
-    if (speed < eps) {
+    if (fabs(speed) < eps) {
         ctrl_stop();
     } else if (std::isinf(radius)) {
         int vl = select_best_speed(speed, true);
@@ -139,11 +139,11 @@ void Motor::update_location() {
         direct = Vec2d(0, 1);
     } else if (radius >= 0) {
         double theta = speed * delta_time / (radius + d_wheel / 2);
-        move = Vec2d(sin(theta), cos(theta) - 1) * radius;
+        move = Vec2d(cos(theta) - 1, sin(theta)) * radius;
         direct = Vec2d(-sin(theta), cos(theta));
     } else {
         double theta = speed * delta_time / (-radius + d_wheel / 2);
-        move = Vec2d(sin(theta), 1 - cos(theta)) * radius;
+        move = Vec2d(1 - cos(theta), sin(theta)) * -radius;
         direct = Vec2d(sin(theta), cos(theta));
     }
     history.push_back(make_pair(move, direct));
