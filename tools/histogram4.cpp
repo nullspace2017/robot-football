@@ -61,13 +61,13 @@ void trigger(Mat& image) {
     Mat histImg1 = getHistImg(hist1, Scalar(0, 255, 0));
     Mat histImg2 = getHistImg(hist2, Scalar(0, 0, 255));
 
-    imshow("hist0", histImg0);
-    imshow("hist1", histImg1);
-    imshow("hist2", histImg2);
+    imshow("H", histImg0);
+    imshow("S", histImg1);
+    imshow("V", histImg2);
     
-    setMouseCallback("hist0", pointMouse);
-    setMouseCallback("hist1", pointMouse);
-    setMouseCallback("hist2", pointMouse);
+    setMouseCallback("H", pointMouse);
+    setMouseCallback("S", pointMouse);
+    setMouseCallback("V", pointMouse);
 
     imshow("image", image2);
     waitKey(30);
@@ -76,13 +76,13 @@ void trigger(Mat& image) {
 void onMouse(int event, int x, int y, int, void* _image) {
     if (event == CV_EVENT_LBUTTONDOWN) {
         cout << x << ", " << y << endl;
-        if (point_time == 0) {
-            point_time = 1;
+        if (point_time == 0 || point_time == 2) {
+            point_time ++;
             point1.x = x;
             point1.y = y;
         }
-        else if (point_time == 1) {
-            point_time = 0;
+        else if (point_time == 1 || point_time == 3) {
+            point_time = 2;
             point2.x = x;
             point2.y = y;
             Mat* image = (Mat*)_image;
@@ -91,7 +91,7 @@ void onMouse(int event, int x, int y, int, void* _image) {
     }
 }
 
-
+#if 0
 int main(int argc, char** argv) {
     if (argc != 2) {
         cout << "Usage: " << argv[0] << " [filename]" << endl;
@@ -99,9 +99,26 @@ int main(int argc, char** argv) {
     }
     Mat image = imread(argv[1]);
     cout << image.type() << endl;
-    imshow("image", image);    
+    imshow("image", image);
     setMouseCallback("image", onMouse, &image);
     waitKey(0);
     return 0;
 }
-
+#else
+int main() {
+    VideoCapture cap(1);
+    if (!cap.isOpened())
+      return -1;
+    Mat image;
+    while (waitKey(30) < 0) {
+        cap >> image;
+        if (point_time >= 2) {
+            trigger(image);
+        } else {
+            imshow("image", image);
+        }
+        setMouseCallback("image", onMouse, &image);
+    }
+    return 0;
+}
+#endif
