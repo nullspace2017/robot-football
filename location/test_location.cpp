@@ -8,7 +8,10 @@ using namespace cv;
 
 int main() {
     Motor *motor = Motor::get_instance();
+    VideoCapture capture1(1);
+    Transform trans1(1);
     Location location(motor);
+    location.add_camera(&capture1, &trans1);
     location.set_current_location(cv::Vec2d(0, 0), cv::Vec2d(0, 1));
     while (1) {
         Vec2d loc = location.get_location().first;

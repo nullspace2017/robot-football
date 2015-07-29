@@ -19,12 +19,12 @@ int main() {
     VideoCapture cap(1);
     if (!cap.isOpened())
       return -1;
-    Mat frame;
-    Transform trans;
-    Vision *vis = 0;
+    Transform trans(1);
+    Vision *vis = new Vision(cvRound(cap.get(CAP_PROP_FRAME_HEIGHT)),
+                             cvRound(cap.get(CAP_PROP_FRAME_WIDTH)), &trans);
     while (1) {
+        Mat frame;
         cap >> frame;
-        if (!vis) vis = new Vision(frame.rows, frame.cols, &trans);
         vis->input(frame);
         line(frame, Point(1, 240), Point(638, 240), Scalar(255, 0, 0));
         line(frame, Point(320, 230), Point(320, 250), Scalar(255, 0, 0));
@@ -40,7 +40,7 @@ int main() {
 #else
 int main() {
     Mat frame = imread("../vision/5.jpg");
-    Transform trans;
+    Transform trans(1);
     Vision *vis = new Vision(frame.rows, frame.cols, &trans);
     vis->input(frame);
     imshow("platform", vis->gen_platform());

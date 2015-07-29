@@ -7,8 +7,11 @@
 using namespace std;
 using namespace cv;
 
-Transform::Transform() {
+Transform::Transform(int camera_number) {
     camera_pos = Vec3d(-90.0, -20.0, 240.0);
+    if (camera_number != 1) {
+        camera_pos[0] *= -1;
+    }
     Vec3d center_pos(0, 1000, 0);
     axis_k = center_pos - camera_pos;
     axis_k /= sqrt(axis_k.dot(axis_k));
