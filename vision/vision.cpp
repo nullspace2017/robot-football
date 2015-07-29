@@ -87,7 +87,19 @@ cv::Mat Vision::gen_platform() {
     return out;
 }
 
-void Vision::get_ball() { //huanglj
+Vec2d Vision::get_ball_pos() {
+    return trans->uv_to_xy(ballx, bally);
+}
+
+int Vision::get_ball() {
+    if (get_ball_hough() == BALL_HAS) {
+        return BALL_HAS;
+    } else {
+        return BALL_NO;
+    }
+}
+
+int Vision::get_ball_color() { //huanglj
     int iLowH = 100, iHighH = 145, iLowS = 40, iHighS = 255, iLowV = 60, iHighV = 255;
 
     Mat imgHSV;
@@ -170,9 +182,8 @@ void Vision::get_ball() { //huanglj
         }
     }
     if (cnt_total == 0) {
-        hasBall = false;
+        return BALL_NO;
     } else {
-        hasBall = true;
         ballx = cntx/cnt_total;
         bally = cnty/cnt_total;
         for (int i = 0; i < height; i ++) {
@@ -202,10 +213,13 @@ void Vision::get_ball() { //huanglj
             v_pic[k][x1] = VCOLOR_BALL_POSSIBLE;
             v_pic[k][x2] = VCOLOR_BALL_POSSIBLE;
         }
+
+        //判断球是否在机器前
+        return BALL_HAS;
     }
 }
 
-void Vision::get_ball_hough() { //huanglj
+int Vision::get_ball_hough() { //huanglj
     int iLowH = 100, iHighH = 170, iLowS = 40, iHighS = 255, iLowV = 60, iHighV = 255;
 
     Mat imgHSV;
@@ -283,12 +297,21 @@ void Vision::get_ball_hough() { //huanglj
         int radius = cvRound(circles[i][2]);
         circle(img, center, 3, Scalar(0,255,0), -1, 8, 0 );
         if (isBall == (int)i) {
+            ballx = circles[i][0];
+            bally = circles[i][1];
+            ballr = circles[i][2];
             circle(img, center, radius, Scalar(255,0,0), 1, 8, 0);
         } else {
             circle(img, center, radius, Scalar(0,0,255), 1, 8, 0 );
         }
     }
     imshow("circles", img );
+
+    if (isBall == -1) {
+        return BALL_NO;
+    } else {
+        return BALL_HAS;
+    }
 }
 
 void Vision::init_ground() {
