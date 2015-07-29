@@ -10,8 +10,7 @@ public:
     Vision(int height, int width, Transform *trans);
     ~Vision();
     void input(cv::Mat const &in);
-    void get_ball(); //huanglj
-    void get_ball_hough(); //huanglj
+    void get_location(cv::Vec2f &pos, cv::Vec2f &direct, double &location_confidence);
     cv::Mat gen_as_pic();
     cv::Mat gen_platform();
 private:
@@ -27,8 +26,9 @@ private:
     uchar *v_plat_pool;
     std::vector<cv::Vec2f> white_lines;
     std::vector<cv::Vec4f> ground;
-    cv::Point2f robot_pos;
+    cv::Vec2f robot_pos;
     cv::Vec2f robot_direct;
+    double robot_location_confidence;
     Transform *trans;
     int ballx, bally, ballr; //huanglj
     bool hasBall;
@@ -36,10 +36,12 @@ private:
     void init_ground();
     void pre_copy();
     void get_edge_white();
-    void expand_to_ball(int x, int y); //huanglj
     void update_plat();
     void get_white_lines();
     void match_robot_pos();
+    void get_ball(); //huanglj
+    void get_ball_hough(); //huanglj
+    void expand_to_ball(int x, int y); //huanglj
 private: // helper functions
     bool in_rect(int x, int y) { return x >= 0 && x < height && y >= 0 && y < width; }
     bool cut_to_rect(int &x, int &y) {
