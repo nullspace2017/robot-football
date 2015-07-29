@@ -92,7 +92,19 @@ cv::Mat Vision::gen_platform() {
     return out;
 }
 
-void Vision::get_ball() { //huanglj
+Vec2d Vision::get_ball_pos() {
+    return trans->uv_to_xy(ballx, bally);
+}
+
+int Vision::get_ball() {
+    if (get_ball_hough() == BALL_HAS) {
+        return BALL_HAS;
+    } else {
+        return BALL_NO;
+    }
+}
+
+int Vision::get_ball_color() { //huanglj
     int iLowH = 100, iHighH = 145, iLowS = 40, iHighS = 255, iLowV = 60, iHighV = 255;
 
     Mat imgHSV;
@@ -175,9 +187,8 @@ void Vision::get_ball() { //huanglj
         }
     }
     if (cnt_total == 0) {
-        hasBall = false;
+        return BALL_NO;
     } else {
-        hasBall = true;
         ballx = cntx/cnt_total;
         bally = cnty/cnt_total;
         for (int i = 0; i < height; i ++) {
@@ -207,10 +218,14 @@ void Vision::get_ball() { //huanglj
             v_pic[k][x1] = VCOLOR_BALL_POSSIBLE;
             v_pic[k][x2] = VCOLOR_BALL_POSSIBLE;
         }
+
+        //判断球是否在机器前
+        return BALL_HAS;
     }
 }
 
-void Vision::get_ball_hough() { //huanglj
+int Vision::get_ball_hough() { //huanglj
+    // 这里的坐标系: x=u,y=v
     int iLowH = 100, iHighH = 170, iLowS = 40, iHighS = 255, iLowV = 60, iHighV = 255;
 
     Mat imgHSV;
@@ -238,7 +253,16 @@ void Vision::get_ball_hough() { //huanglj
             }
         }
     }
-    imshow("thresh", imgThresholded);
+    imshow("thresh 0", imgThresholded);
+
+    //morphological closing (removes small holes from the foreground)
+    dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+
+    //morphological opening (removes small objects from the foreground)
+    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(20, 20)) );
+    dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(20, 20)) );
+    imshow("thresh 1", imgThresholded);
 
     Mat img = pic, gray, can;
     cvtColor(img, gray, CV_BGR2GRAY);
@@ -247,26 +271,27 @@ void Vision::get_ball_hough() { //huanglj
     imshow("can", can);
     GaussianBlur(gray, gray, Size(9, 9), 2, 2 );
     vector<Vec3f> circles;
-    HoughCircles(gray, circles, CV_HOUGH_GRADIENT, 1.5, 20, 100, 50);
+    HoughCircles(gray, circles, CV_HOUGH_GRADIENT, 1.5, 20, 100, 43);
     cout << "circles.size:" << circles.size() << '\n';
 
-    int isBall = -1;
-    double max_rate = 0;
+    int isBall = -1, alterBall = -1;
+    double max_rate = 0, max_radius = 0;
     for (size_t i = 0; i < circles.size(); i ++) {
         int centerx = cvRound(circles[i][0]), centery = cvRound(circles[i][1]), centerr = cvRound(circles[i][2]);
         int x1 = centerx - centerr, x2 = centerx + centerr;
         int y1 = centery - centerr, y2 = centery + centerr;
-        cut_to_rect(x1, y1);
-        cut_to_rect(x2, y2);
+        cut_to_rect(y1, x1);
+        cut_to_rect(y2, x2);
         int cnt_total = 0, cnt_ball = 0;
-        double ball_rate = 0.3;
+        double ball_rate = 0.3, thresh_rate = 0.9;
+        cout << "y1:" << y1 << " y2:" << y2 << '\n';
         for (int y = y1; y <y2; y ++) {
             double tempc = centerr, tempa = fabs(centery - y);
             double tempb = sqrt(tempc*tempc - tempa*tempa);
             x1 = centerx - (int)tempb;
             x2 = centerx + (int)tempb;
-            cut_to_rect(x1, y1);
-            cut_to_rect(x2, y2);
+            cut_to_rect(y1, x1);
+            cut_to_rect(y2, x2);
             uchar *dt = imgThresholded.ptr<uchar>(y);
             for (int x = x1; x < x2; x ++) {
                 cnt_total ++;
@@ -274,13 +299,18 @@ void Vision::get_ball_hough() { //huanglj
             }
         }
         double temp_rate = cnt_ball*1.0/cnt_total;
-        if (temp_rate > ball_rate && temp_rate > max_rate && centerr > 10) {
+        if (temp_rate > ball_rate && temp_rate > thresh_rate && centerr > max_radius) {
             isBall = i;
+            max_radius = centerr;
+        }
+        if (temp_rate > ball_rate && centerr > 10 && temp_rate > max_rate) {
+            alterBall = i;
             max_rate = temp_rate;
         }
-        cout << i << ' ' << centerx << ' ' << centery << '\n';
-        cout << i << ' ' << cnt_ball*1.0/cnt_total << '\n';
+        cout << i << ' ' << centerx << ' ' << centery << ' ' << centerr << '\n';
+        cout << i << ' ' << temp_rate << ' ' << isBall << '\n';
     }
+    if (isBall == -1) isBall = alterBall;
     cout << "isBall:" << isBall << '\n';
 
     for (size_t i = 0; i < circles.size(); i++ ) {
@@ -288,12 +318,21 @@ void Vision::get_ball_hough() { //huanglj
         int radius = cvRound(circles[i][2]);
         circle(img, center, 3, Scalar(0,255,0), -1, 8, 0 );
         if (isBall == (int)i) {
+            ballx = circles[i][0];
+            bally = circles[i][1];
+            ballr = circles[i][2];
             circle(img, center, radius, Scalar(255,0,0), 1, 8, 0);
         } else {
             circle(img, center, radius, Scalar(0,0,255), 1, 8, 0 );
         }
     }
     imshow("circles", img );
+
+    if (isBall == -1) {
+        return BALL_NO;
+    } else {
+        return BALL_HAS;
+    }
 }
 
 void Vision::init_ground() {
