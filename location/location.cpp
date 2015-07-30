@@ -57,5 +57,24 @@ void Location::try_vision_correct() {
     }
 }
 
+#define sqr(x) ((x)*(x))
+
 float Location::get_radius() {
+    // NOT FINISHED;
+    Vec2f cur_pos, cur_dir, des_pos, des_dir;
+    Vec2f rdir;// direction of radius;
+    if (des_dir[0] == 0) rdir[0] = 1, rdir[1] = 0;
+    else if (des_dir[1] == 0) rdir[0] = 0, rdir[1] = 1;
+    else  {
+        rdir[0] = 1, rdir[1] = des_dir[1] / des_dir[0];
+        rdir /= sqrt(1 + rdir[1] * rdir[1]);
+    }
+    Vec2f mov = (cur_pos - des_pos) / 2;
+    float r = (sqr(mov[0]) + sqr(mov[1])) / mov.ddot(rdir);
+    Vec2f ori = des_dir + r * rdir;
+    if (cur_dir.ddot(des_dir) > 0) {
+        return r / 3.0f;
+    } else {
+        return r;
+    }
 }
