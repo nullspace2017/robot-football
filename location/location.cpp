@@ -72,3 +72,28 @@ cv::Mat Location::gen_ground_view(double mm_per_pixel) {
          xy_to_ground_point(position[0] + 10000 * direction[0], position[1] + 10000 * direction[1]), Scalar(0, 255, 0), 1);
     return view_ground;
 }
+
+template <typename T>
+static inline T sqr(T x) {
+    return x * x;
+}
+
+float Location::get_radius() {
+    // NOT FINISHED;
+    Vec2f cur_pos, cur_dir, des_pos, des_dir;
+    Vec2f rdir;// direction of radius;
+    if (des_dir[0] == 0) rdir[0] = 1, rdir[1] = 0;
+    else if (des_dir[1] == 0) rdir[0] = 0, rdir[1] = 1;
+    else  {
+        rdir[0] = 1, rdir[1] = des_dir[1] / des_dir[0];
+        rdir /= sqrt(1 + rdir[1] * rdir[1]);
+    }
+    Vec2f mov = (cur_pos - des_pos) / 2;
+    float r = (sqr(mov[0]) + sqr(mov[1])) / mov.ddot(rdir);
+    Vec2f ori = des_dir + r * rdir;
+    if (cur_dir.ddot(des_dir) > 0) {
+        return r / 3.0f;
+    } else {
+        return r;
+    }
+}

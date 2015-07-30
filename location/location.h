@@ -15,6 +15,7 @@ public:
     void set_current_location(cv::Vec2d position, cv::Vec2d direction);
     void try_vision_correct();
     cv::Mat gen_ground_view(double mm_per_pixel = 8.0);
+    float get_radius();
 private:
     Motor *const motor;
     Ground const ground;
