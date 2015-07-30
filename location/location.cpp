@@ -32,3 +32,6 @@ void Location::set_current_location(cv::Vec2d position, cv::Vec2d direction) {
 void Location::try_vision_correct() {
     throw invalid_argument("not implemented method Location::try_vision_correct");
 }
+
+float Location::get_radius() {
+}
