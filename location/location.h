@@ -6,10 +6,12 @@
 #include <opencv2/opencv.hpp>
 #include "motor.h"
 #include "vision.h"
+#include "capture.hpp"
 
 class Location {
 public:
     Location(Motor *motor);
+    ~Location();
     void add_camera(cv::VideoCapture *capture, Transform *trans);
     std::pair<cv::Vec2d, cv::Vec2d> get_location();
     void set_current_location(cv::Vec2d position, cv::Vec2d direction);
@@ -20,7 +22,7 @@ private:
     Motor *const motor;
     Ground const ground;
     enum { E_CAMEAR_COUNT = 2 };
-    std::vector<cv::VideoCapture *> v_capture;
+    std::vector<Capture *> v_capture;
     std::vector<Vision *> v_vision;
     cv::Vec2d position;
     cv::Vec2d direction;

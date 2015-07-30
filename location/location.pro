@@ -12,7 +12,8 @@ SOURCES += \
     ../vision/vision.cpp
 
 HEADERS += \
-    location.h
+    location.h \
+    capture.hpp
 
 INCLUDEPATH += ../motor/ \
     ../vision/

@@ -8,8 +8,15 @@ using namespace cv;
 
 Location::Location(Motor *motor): motor(motor) { }
 
+Location::~Location() {
+    for (size_t i = 0; i < v_capture.size(); i++)
+        delete v_capture[i];
+    for (size_t i = 0; i < v_vision.size(); i++)
+        delete v_vision[i];
+}
+
 void Location::add_camera(VideoCapture *capture, Transform *trans) {
-    v_capture.push_back(capture);
+    v_capture.push_back(new Capture(capture));
     v_vision.push_back(new Vision(cvRound(capture->get(CAP_PROP_FRAME_HEIGHT)),
                                   cvRound(capture->get(CAP_PROP_FRAME_WIDTH)), trans));
 }
