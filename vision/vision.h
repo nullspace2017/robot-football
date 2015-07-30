@@ -10,10 +10,12 @@ public:
     Vision(int height, int width, Transform *trans);
     ~Vision();
     void input(cv::Mat const &in);
-    void get_ball(); //huanglj
-    void get_ball_hough(); //huanglj
+    void get_location(cv::Vec2f &pos, cv::Vec2f &direct, double &location_confidence);
+    cv::Vec2d get_ball_pos();
+    int get_ball();
     cv::Mat gen_as_pic();
     cv::Mat gen_platform();
+    enum BALLPOS {BALL_HAS = 0, BALL_NEAR, BALL_FRONT, BALL_NO, BALLPOS_COUNT};
 private:
     enum VCOLOR { VCOLOR_WHITE = 0, VCOLOR_GREEN, VCOLOR_BACKGROUND, VCOLOR_EDGE,
                     VCOLOR_EDGE_POSSIBLE, VCOLOR_OUT_OF_RANGE, VCOLOR_BALL, VCOLOR_BALL_POSSIBLE, VCOLOR_COUNT };
@@ -27,19 +29,20 @@ private:
     uchar *v_plat_pool;
     std::vector<cv::Vec2f> white_lines;
     std::vector<cv::Vec4f> ground;
-    cv::Point2f robot_pos;
+    cv::Vec2f robot_pos;
     cv::Vec2f robot_direct;
+    double robot_location_confidence;
     Transform *trans;
-    int ballx, bally, ballr; //huanglj
-    bool hasBall;
+    int ballx, bally, ballr;
 private:
     void init_ground();
     void pre_copy();
     void get_edge_white();
-    void expand_to_ball(int x, int y); //huanglj
     void update_plat();
     void get_white_lines();
     void match_robot_pos();
+    int get_ball_color();
+    int get_ball_hough();
 private: // helper functions
     bool in_rect(int x, int y) { return x >= 0 && x < height && y >= 0 && y < width; }
     bool cut_to_rect(int &x, int &y) {
@@ -50,6 +53,7 @@ private: // helper functions
         else if (y >= width) { y = width - 1; flag = true; }
         return flag;
     }
+    void expand_to_ball(int x, int y); //huanglj
 };
 
 #endif

@@ -6,7 +6,7 @@
 class Transform
 {
 public:
-    Transform();
+    Transform(int camera_number);
     ~Transform();
     cv::Vec2d uv_to_xy(int u, int v);
     cv::Vec2d xy_to_uv(double x, double y);
