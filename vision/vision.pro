@@ -11,6 +11,7 @@ SOURCES += \
 
 HEADERS += \
     vision.h \
-    transform.h
+    transform.h \
+    ground.hpp
 
 LIBS += /usr/local/lib/libopencv_*

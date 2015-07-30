@@ -616,6 +616,10 @@ void Vision::get_white_lines() {
 }
 
 void Vision::match_robot_pos() {
+    if (white_lines.size() == 0) {
+        robot_location_confidence = 0;
+        return;
+    }
     static float const add_angle_per_times = CV_PI / 180;
     float min_error = 1e20;
     float delta_base = 0;

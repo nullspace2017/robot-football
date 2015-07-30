@@ -40,6 +40,7 @@ void Location::try_vision_correct() {
     for (size_t i = 0; i < v_capture.size(); i++) {
         Mat frame;
         *v_capture[i] >> frame;
+        imshow("frame", frame);
         v_vision[i]->input(frame);
         Vec2f pos;
         Vec2f direct;
@@ -48,11 +49,26 @@ void Location::try_vision_correct() {
         if (location_confidence > 0.5) {
             if (direct.dot(direction) < 0) {
                 direct = -direct;
-                pos = Vec2f(900 - pos[0], 2200 - pos[1]);
+                pos = Vec2f(ground.width - pos[0], ground.height - pos[1]);
             }
             position = pos;
             direction = direct;
             break;
         }
     }
+}
+
+cv::Mat Location::gen_ground_view(double mm_per_pixel) {
+    auto xy_to_ground_point = [&](double xw, double yw) {
+        return Point(xw / mm_per_pixel, (ground.height - yw) / mm_per_pixel);
+    };
+    Mat view_ground(ground.height / mm_per_pixel, ground.width / mm_per_pixel, CV_8UC3, Scalar::all(0));
+    for (size_t i = 0; i < ground.lines.size(); i++) {
+        Vec4f const &l(ground.lines[i]);
+        line(view_ground, xy_to_ground_point(l[0], l[1]), xy_to_ground_point(l[2], l[3]), Scalar::all(255), 2);
+    }
+    line(view_ground, xy_to_ground_point(position[0], position[1]), xy_to_ground_point(position[0], position[1]), Scalar(0, 255, 0), 5);
+    line(view_ground, xy_to_ground_point(position[0], position[1]),
+         xy_to_ground_point(position[0] + 10000 * direction[0], position[1] + 10000 * direction[1]), Scalar(0, 255, 0), 1);
+    return view_ground;
 }

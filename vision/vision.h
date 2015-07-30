@@ -4,6 +4,7 @@
 #include <vector>
 #include <opencv2/opencv.hpp>
 #include "transform.h"
+#include "ground.hpp"
 
 class Vision {
 public:
