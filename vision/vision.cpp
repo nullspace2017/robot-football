@@ -353,7 +353,7 @@ void Vision::init_ground() {
 void Vision::pre_copy() {
     static auto get_color = [&](uchar h, uchar s, uchar v) {
         if (h > 102 && h < 137 && s > 90 && s < 150) return VCOLOR_GREEN;
-        if (s < 70 && v > 200) return VCOLOR_WHITE;
+        if (s < 70 && v > 175) return VCOLOR_WHITE;
         return VCOLOR_BACKGROUND;
     };
     Mat hsv;
