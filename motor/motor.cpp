@@ -206,7 +206,6 @@ void Motor::ctrl_send(void *buf, int len) {
 }
 
 void Motor::ctrl_move(int speed_left, int speed_right) {
-    cout << speed_left << '\t' << speed_right << endl;
     last_vl = speed_left;
     last_vr = speed_right;
     char buf_ctrl2motor[5];

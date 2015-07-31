@@ -13,7 +13,6 @@ public:
     void go(double radius, double speed);
     void stop();
     std::vector<std::pair<cv::Vec2d, cv::Vec2d> > get_delta();
-    void test_ctrl_send(int speed_left, int speed_right) { ctrl_move(speed_left, speed_right); }
 private:
     Motor();
     ~Motor();

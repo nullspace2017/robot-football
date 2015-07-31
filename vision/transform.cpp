@@ -7,7 +7,7 @@
 using namespace std;
 using namespace cv;
 
-Transform::Transform(int) : m{88.4118, 33.2783, 1054.05, 3.50322, 9.87371, 2300.52, 0.00842589, 0.121405} { }
+Transform::Transform(int): m{88.4118, 33.2783, 1054.05, 3.50322, 9.87371, 2300.52, 0.00842589, 0.121405} { }
 
 Transform::~Transform() { }
 

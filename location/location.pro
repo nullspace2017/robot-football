@@ -15,7 +15,4 @@ HEADERS += \
     location.h \
     capture.hpp
 
-INCLUDEPATH += ../motor/ \
-    ../vision/
-
 LIBS += /usr/local/lib/libopencv_*

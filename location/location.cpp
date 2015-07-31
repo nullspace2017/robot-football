@@ -3,6 +3,9 @@
 #include <cmath>
 #include <stdexcept>
 
+using namespace std;
+using namespace cv;
+
 Location::Location(Motor *motor): motor(motor) { }
 
 Location::~Location() {

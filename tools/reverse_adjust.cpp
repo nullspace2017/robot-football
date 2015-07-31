@@ -11,7 +11,6 @@ using namespace std;
 using namespace cv;
 
 void onMouse(int event, int x, int y, int, void* _img) {
-    Mat* img = (Mat*)_img;
     if (event == CV_EVENT_LBUTTONDOWN) {
         cout << x << ", " << y << endl;
     }
@@ -32,7 +31,8 @@ int main(int argc, char** argv) {
         drawLine(img);
         imshow("img", img);
         setMouseCallback("img", onMouse, &img);
-        waitKey(30);
+        if (waitKey(30) >= 0)
+            break;
     }
     return 0;
 }

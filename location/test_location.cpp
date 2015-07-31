@@ -1,6 +1,6 @@
 #include <iostream>
 #include <unistd.h>
-#include "motor.h"
+#include "../motor/motor.h"
 #include "location.h"
 
 using namespace std;

@@ -5,11 +5,6 @@
 #include "vision.h"
 #include "transform.h"
 
-#if CV_MAJOR_VERSION == 3
-#define CV_CAP_PROP_FRAME_WIDTH cv::CAP_PROP_FRAME_WIDTH
-#define CV_CAP_PROP_FRAME_HEIGHT cv::CAP_PROP_FRAME_HEIGHT
-#endif
-
 using namespace std;
 using namespace cv;
 
@@ -25,8 +20,9 @@ int main() {
     if (!cap.isOpened())
       return -1;
     Transform trans(1);
-    Vision *vis = new Vision(cvRound(cap.get(CAP_PROP_FRAME_HEIGHT)),
-                             cvRound(cap.get(CAP_PROP_FRAME_WIDTH)), &trans);
+    cout << trans.uv_to_xy(84, 241) << endl;
+    Vision *vis = new Vision(cvRound(cap.get(CV_CAP_PROP_FRAME_HEIGHT)),
+                             cvRound(cap.get(CV_CAP_PROP_FRAME_WIDTH)), &trans);
     while (1) {
         Mat frame;
         cap >> frame;

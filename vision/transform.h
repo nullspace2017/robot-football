@@ -3,8 +3,7 @@
 
 #include <opencv2/opencv.hpp>
 
-class Transform
-{
+class Transform {
 public:
     Transform(int camera_number);
     ~Transform();
