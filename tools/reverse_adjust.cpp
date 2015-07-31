@@ -17,8 +17,8 @@ void onMouse(int event, int x, int y, int, void* _img) {
 }
 
 void drawLine(Mat& img) {
-    line(img, Point(15, 252), Point(228, 211), Scalar(0, 0, 255), 2);
-    line(img, Point(62, 242), Point(628, 260), Scalar(0, 0, 255), 2);
+    line(img, Point(558, 185), Point(89, 182), Scalar(0, 0, 255), 2);
+    line(img, Point(558, 185), Point(417, 129), Scalar(0, 0, 255), 2);
 }
 
 
