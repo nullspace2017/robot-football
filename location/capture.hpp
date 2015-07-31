@@ -4,7 +4,7 @@
 #include <iostream>
 #include <thread>
 #include <mutex>
-#include <condition_variable>
+#include <unistd.h>
 #include <opencv2/opencv.hpp>
 
 class Capture {
@@ -24,14 +24,15 @@ public:
         mu.lock();
         mat = frame.clone();
         mu.unlock();
+        usleep(0);
         return *this;
     }
     static void capture_thread(Capture *cap) {
         while (!cap->pre_close) {
             cap->mu.lock();
             *cap->cap >> cap->frame;
-            cap->cv.notify_all();
             cap->mu.unlock();
+            usleep(0);
         }
     }
 private:
@@ -41,7 +42,6 @@ private:
     bool pre_close;
     std::thread th;
     std::mutex mu;
-    std::condition_variable cv;
 };
 
 #endif // CAPTURE_HPP
