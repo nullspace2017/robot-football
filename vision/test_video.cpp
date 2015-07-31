@@ -20,7 +20,6 @@ int main() {
     if (!cap.isOpened())
       return -1;
     Transform trans(1);
-    cout << trans.uv_to_xy(84, 241) << endl;
     Vision *vis = new Vision(cvRound(cap.get(CV_CAP_PROP_FRAME_HEIGHT)),
                              cvRound(cap.get(CV_CAP_PROP_FRAME_WIDTH)), &trans);
     while (1) {
