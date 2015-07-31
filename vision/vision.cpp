@@ -93,7 +93,7 @@ cv::Mat Vision::gen_platform() {
 }
 
 Vec2d Vision::get_ball_pos() {
-    return trans->uv_to_xy(ballx, bally);
+    return trans->uv_to_xy(ballx, bally + ballr);
 }
 
 int Vision::get_ball() {

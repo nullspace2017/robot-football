@@ -5,6 +5,11 @@
 #include "vision.h"
 #include "transform.h"
 
+#if CV_MAJOR_VERSION == 3
+#define CV_CAP_PROP_FRAME_WIDTH cv::CAP_PROP_FRAME_WIDTH
+#define CV_CAP_PROP_FRAME_HEIGHT cv::CAP_PROP_FRAME_HEIGHT
+#endif
+
 using namespace std;
 using namespace cv;
 

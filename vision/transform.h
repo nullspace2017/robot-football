@@ -11,11 +11,7 @@ public:
     cv::Vec2d uv_to_xy(int u, int v);
     cv::Vec2d xy_to_uv(double x, double y);
 private:
-    cv::Vec3d camera_pos;
-    cv::Vec3d axis_i, axis_j, axis_k;
-private:
-    cv::Vec2d get_delta_to_center_in_scale(int u, int v);
-    cv::Vec2d get_uv_through_scale(double weight_i, double weight_j);
+    const double m[8];
 };
 
 #endif // TRANSFORM_H

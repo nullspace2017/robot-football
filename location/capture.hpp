@@ -1,6 +1,5 @@
 #ifndef CAPTURE_HPP
 #define CAPTURE_HPP
-
 #include <iostream>
 #include <thread>
 #include <mutex>
@@ -10,9 +9,7 @@
 class Capture {
 public:
     Capture(cv::VideoCapture *cap): cap(cap),
-        frame(cvRound(cap->get(cv::CAP_PROP_FRAME_HEIGHT)),
-              cvRound(cap->get(cv::CAP_PROP_FRAME_WIDTH)),
-              CV_8UC3, cv::Scalar::all(0)),
+        captured(false),
         pre_read(false),
         pre_close(false),
         th(capture_thread, this) { }
@@ -21,6 +18,8 @@ public:
         th.join();
     }
     Capture &operator >>(cv::Mat &mat) {
+        while (!captured)
+            usleep(0);
         mu.lock();
         mat = frame.clone();
         mu.unlock();
@@ -31,6 +30,7 @@ public:
         while (!cap->pre_close) {
             cap->mu.lock();
             *cap->cap >> cap->frame;
+            cap->captured = true;
             cap->mu.unlock();
             usleep(0);
         }
@@ -38,6 +38,7 @@ public:
 private:
     cv::VideoCapture *cap;
     cv::Mat frame;
+    bool captured;
     bool pre_read;
     bool pre_close;
     std::thread th;
