@@ -7,47 +7,32 @@
 using namespace std;
 using namespace cv;
 
-Transform::Transform(int camera_number) {
-    camera_pos = Vec3d(-90.0, -20.0, 240.0);
-    if (camera_number != 1) {
-        camera_pos[0] *= -1;
-    }
-    Vec3d center_pos(0, 1000, 0);
-    axis_k = center_pos - camera_pos;
-    axis_k /= sqrt(axis_k.dot(axis_k));
-    Vec3d tmp(1, 0, 0);
-    axis_i = tmp.cross(axis_k);
-    axis_i /= sqrt(axis_i.dot(axis_i));
-    axis_j = axis_k.cross(axis_i);
-}
+// c++11的特性
+Transform::Transform() : m{88.4118, 33.2783, 1054.05, 3.50322, 9.87371, 2300.52, 0.00842589, 0.121405} { }
 
 Transform::~Transform() { }
 
 Vec2d Transform::uv_to_xy(int u, int v) {
-    Vec2d xy_scale = get_delta_to_center_in_scale(u, v);
-    Vec3d direction = axis_k + xy_scale[0] * axis_i + xy_scale[1] * axis_j;
-    double lambda = -camera_pos[2] / direction[2];
-    return Vec2d(camera_pos[0] + lambda * direction[0], camera_pos[1] + lambda * direction[1]);
+    double tmp1 = (m[4] - m[7] * v) * (m[2] - u);
+    double tmp2 = (m[1] - m[7] * u) * (m[5] - v);
+    double x = tmp1 - tmp2;
+    tmp1 = (m[4] - m[7] * v) * (m[0] - m[6] * u);
+    tmp2 = (m[1] - m[7] * u) * (m[3] - m[6] * v);
+    x = - x / (tmp1 - tmp2);
+
+    tmp1 = (m[3] - m[6] * v) * (m[2] - u);
+    tmp2 = (m[0] - m[6] * u) * (m[5] - v);
+    double y = tmp1 - tmp2;
+    tmp1 = (m[3] - m[6] * v) * (m[1] - m[7] * u);
+    tmp2 = (m[0] - m[6] * u) * (m[4] - m[7] * v);
+    y = - y / (tmp1 - tmp2);
+    return Vec2d(x, y);
 }
 
 Vec2d Transform::xy_to_uv(double x, double y) {
-    Vec3d direction = Vec3d(x, y, 0) - camera_pos;
-    double weight_i = axis_i.dot(direction);
-    double weight_j = axis_j.dot(direction);
-    double weight_k = axis_k.dot(direction);
-    return get_uv_through_scale(weight_i / weight_k, weight_j / weight_k);
+    double u = (m[0]*x + m[1]*y + m[2]) / (1 + m[6]*x + m[7]*y);
+    double v = (m[3]*x + m[4]*y + m[5]) / (1 + m[6]*x + m[7]*y);
+    return Vec2d(u, v);
 }
 
-static double const per_pixel = (400.0 / 265) / 1000.0;
 
-Vec2d Transform::get_delta_to_center_in_scale(int u, int v) {
-    int du = u - 320;
-    int dv = v - 240;
-    return Vec2d(-dv * per_pixel, du * per_pixel);
-}
-
-Vec2d Transform::get_uv_through_scale(double weight_i, double weight_j) {
-    double du = weight_j / per_pixel;
-    double dv = weight_i / per_pixel;
-    return Vec2d(320 + du, 240 - dv);
-}
