@@ -1,17 +1,27 @@
 #ifndef CAPTURE_HPP
 #define CAPTURE_HPP
-
 #include <iostream>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
-#include <opencv2/opencv.hpp>
+
+#if CV_MAJOR_VERSION == 3
+    #include <opencv2/opencv.hpp>
+    #define CV_CAP_PROP_FRAME_WIDTH cv::CAP_PROP_FRAME_WIDTH
+    #define CV_CAP_PROP_FRAME_HEIGHT cv::CAP_PROP_FRAME_HEIGHT
+
+#elif CV_MAJOR_VERSION == 2
+    #include "opencv2/highgui/highgui.hpp"
+    #include "opencv2/core/core.hpp"
+    #include "opencv2/imgproc/imgproc.hpp"
+    #include "opencv2/calib3d/calib3d.hpp"
+#endif
 
 class Capture {
 public:
     Capture(cv::VideoCapture *cap): cap(cap),
-        frame(cvRound(cap->get(cv::CAP_PROP_FRAME_HEIGHT)),
-              cvRound(cap->get(cv::CAP_PROP_FRAME_WIDTH)),
+        frame(cvRound(cap->get(CV_CAP_PROP_FRAME_WIDTH)),
+              cvRound(cap->get(CV_CAP_PROP_FRAME_WIDTH)),
               CV_8UC3, cv::Scalar::all(0)),
         pre_read(false),
         pre_close(false),
