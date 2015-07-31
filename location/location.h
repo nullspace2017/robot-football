@@ -3,9 +3,8 @@
 
 #include <vector>
 #include <utility>
-#include <opencv2/opencv.hpp>
-#include "motor.h"
-#include "vision.h"
+#include "../motor/motor.h"
+#include "../vision/vision.h"
 #include "capture.hpp"
 
 class Location {
