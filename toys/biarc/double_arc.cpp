@@ -395,7 +395,7 @@ void generateArcPath(Motor *motor,Location location,cv::Point2d dest_loc,cv::Poi
     // first arc
     center_radius1 = 0-pArc1.m_center.m_x;
     is_l_not_r = center_radius1 > 0;
-    center_velocity = motor->get_speed(speed_level,is_l_not_r) *(abs(center_radius1))/(abs(center_radius1)+d_wheel/2);
+    center_velocity = 10;//motor->get_speed(speed_level,is_l_not_r) *(abs(center_radius1))/(abs(center_radius1)+d_wheel/2);
     center_arc = pArc1.m_arcLen;
     printf("ar1len:%f\n",pArc1.m_arcLen );
     printf("ar2len:%f\n",pArc2.m_arcLen );
@@ -419,7 +419,7 @@ void generateArcPath(Motor *motor,Location location,cv::Point2d dest_loc,cv::Poi
     printf("z:%f\n",res.m_z );
     is_l_not_r = res.m_z > 0;
     center_radius2 = is_l_not_r? pArc2.m_radius:-pArc2.m_radius;
-    center_velocity = motor->get_speed(speed_level,is_l_not_r) *(abs(center_radius2))/(abs(center_radius2)+d_wheel/2);
+    center_velocity = 10;// motor->get_speed(speed_level,is_l_not_r) *(abs(center_radius2))/(abs(center_radius2)+d_wheel/2);
     center_arc = pArc2.m_arcLen;
     t = int(center_arc/center_velocity*1000000);
     motor->go(center_radius2,speed_level*1.0/MAX_SPEED_SELECTION);
