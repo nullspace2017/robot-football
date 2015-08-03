@@ -29,6 +29,7 @@ void onMouse(int event, int x, int y, int, void*) {
     }
 }
 
+// 用鼠标取标定点，至少10个
 void sample() {
     VideoCapture cap(1);
     Mat mat;
@@ -49,15 +50,15 @@ void sample() {
     imwrite("img.png", mat);
 }
 
+
 void makeMatViaRes(Mat& A, Mat& U, vector<Point2f>& ImagPosition, vector<Point2f>& RealPosition, int pointsNum)
 {
-	int i, j;
 	double points_u[pointsNum];
 	double points_y[pointsNum];
 	double points_x[pointsNum];
 	double points_v[pointsNum];
 	
-	for(i = 0; i < pointsNum; i++)
+	for(auto i = 0; i < pointsNum; i++)
 	{
 		points_u[i] = (double)ImagPosition[i].x;
 		points_v[i] = (double)ImagPosition[i].y;
@@ -65,7 +66,7 @@ void makeMatViaRes(Mat& A, Mat& U, vector<Point2f>& ImagPosition, vector<Point2f
 		points_y[i] = (double)RealPosition[i].y;
 	}
 
-	for(i = 0; i < pointsNum; i++)
+	for(auto i = 0; i < pointsNum; i++)
 	{
         A.at<double>(i, 0) = points_x[i];
         A.at<double>(i, 1) = points_y[i];
@@ -75,7 +76,7 @@ void makeMatViaRes(Mat& A, Mat& U, vector<Point2f>& ImagPosition, vector<Point2f
 
         U.at<double>(i, 0) = points_u[i];
 	}
-	for(i = pointsNum; i < 2 * pointsNum; i++)
+	for(auto i = pointsNum; i < 2 * pointsNum; i++)
 	{
         A.at<double>(i, 3) = points_x[i - pointsNum];
         A.at<double>(i, 4) = points_y[i - pointsNum];
@@ -88,6 +89,7 @@ void makeMatViaRes(Mat& A, Mat& U, vector<Point2f>& ImagPosition, vector<Point2f
 	return;
 }
 
+// 打印矩阵
 void printMat(const Mat& mat) {
     for (int i = 0; i < mat.rows; i ++) {
         for (int j = 0; j < mat.cols; j ++) {
@@ -98,6 +100,7 @@ void printMat(const Mat& mat) {
     cout << endl;
 }
 
+// 计算转换矩阵
 void calTransMat(Mat& transMat, int pointsNum, vector<Point2f>& ImagPosition, vector<Point2f>& RealPosition)
 {
 	Mat A = Mat::zeros(2 * pointsNum, 8, CV_64F);
@@ -124,10 +127,11 @@ void calTransMat(Mat& transMat, int pointsNum, vector<Point2f>& ImagPosition, ve
 	return;
 }
 
+// 绘制图像上的点及实际点
 void drawPoint() {
     Mat img(480, 640, CV_8UC3, Scalar(255, 255, 255));
     Mat real(480, 640, CV_8UC3, Scalar(255, 255, 255));
-    for (int i = 0; i < imgPos.size(); i ++) {
+    for (unsigned i = 0; i < imgPos.size(); i ++) {
         circle(img, imgPos[i], 2, Scalar(0, 0, 255), -1);
         Point2f point(realPos[i].x*2, realPos[i].y*2);
         int newJ = point.x + 400;
@@ -140,12 +144,12 @@ void drawPoint() {
     waitKey(30);
 }
 
-void transform(Point2f& imgPoint, Point2f& realPoint) {
+// 把图像坐标转为真实坐标
+void uv2xy(Point2f& imgPoint, Point2f& realPoint) {
     double m[transMat.rows];
     for (int i = 0; i < transMat.rows; i ++) {
         m[i] = transMat.at<double>(i, 0);
     }
-    // double m[] = {67.9222, 39.5566, -296.418, -2.56597, 7.31207, 1948.82, -0.0131613, 0.100575};
 
     double u = imgPoint.x, v = imgPoint.y;
     double tmp1 = (m[4] - m[7] * v) * (m[2] - u);
@@ -166,7 +170,21 @@ void transform(Point2f& imgPoint, Point2f& realPoint) {
     realPoint.y = y;
 }
 
+// 把真实坐标转为图像坐标
+void xy2uv(Point2f& realPoint, Point2f& imgPoint) {
+    double m[transMat.rows];
+    for (int i = 0; i < transMat.rows; i ++) {
+        m[i] = transMat.at<double>(i, 0);
+    }
+    double x = realPoint.x, y = realPoint.y;
+    double u = (m[0]*x + m[1]*y + m[2]) / (1 + m[6]*x + m[7]*y);
+    double v = (m[3]*x + m[4]*y + m[5]) / (1 + m[6]*x + m[7]*y);
+    imgPoint.x = u;
+    imgPoint.y = v;
+}
 
+
+// 把图像转为俯视图
 void trans(Mat& img, Mat& transImg) {
     vector<Point2f> realPoints;
     vector<Vec3b> realScalar;
@@ -176,13 +194,13 @@ void trans(Mat& img, Mat& transImg) {
             imgPoint.x = j;
             imgPoint.y = i;
             Point2f realPoint;
-            transform(imgPoint, realPoint);
+            uv2xy(imgPoint, realPoint);
             realPoints.push_back(realPoint);
             realScalar.push_back(img.at<Vec3b>(i, j));
             }
     }
     
-    for (int i = 0; i < realPoints.size(); i ++) {
+    for (unsigned i = 0; i < realPoints.size(); i ++) {
         Point2f point(realPoints[i].x*2, realPoints[i].y*2);
         int newJ = point.x + 400;
         int newI = - point.y + 500;
@@ -192,6 +210,7 @@ void trans(Mat& img, Mat& transImg) {
     }
 }
 
+// 看标定效果
 void test() {
     drawPoint();
     Mat mat = imread("img.png");
