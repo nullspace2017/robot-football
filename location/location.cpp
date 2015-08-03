@@ -107,7 +107,7 @@ static inline T sqr(T x) {
 }
 
 double Location::get_radius(Vec2d cur_pos, Vec2d cur_dir) {
-    Vec2d /*cur_pos(0, 0), cur_dir(0, 1), */des_pos(900, 900), des_dir(0, 1);
+    Vec2d /*cur_pos(0, 0), cur_dir(0, 1), */des_pos(1700, 4000), des_dir(0, -1);
     Vec2d rdir, ori, norm; // direction of radius, origin of circle;
     Vec2d mov = (cur_pos - des_pos) / 2;
     double r;
@@ -118,39 +118,40 @@ double Location::get_radius(Vec2d cur_pos, Vec2d cur_dir) {
             rdir = Vec2d(1, des_dir[1] / des_dir[0]);
             rdir /= sqrt(1 + sqr(rdir[1]));
         }
-        if (rdir.ddot(Vec2d(des_dir[1], -des_dir[0])) < 0)
-            rdir = -rdir;
         if (abs(mov.ddot(rdir)) < 1e-6) {
             if (abs(cur_dir.ddot(rdir)) < 1e-6)
                 return INFINITY;
             else {
+                if (rdir.ddot(Vec2d(des_dir[1], -des_dir[0])) < 0)
+                    rdir = -rdir;
                 norm = rdir;
             }
-        } else {
+        } else {            
             r = (sqr(mov[0]) + sqr(mov[1])) / mov.ddot(rdir);
             ori = des_pos + r * rdir;
             norm = cur_pos - ori;
         }
     } else {
+        cout << "~" << endl;
         if (abs(cur_dir[0]) < 1e-6) rdir = Vec2d(1, 0);
         else if (abs(cur_dir[1]) < 1e-6) rdir = Vec2d(0, 1);
         else  {
             rdir = Vec2d(1, cur_dir[1] / cur_dir[0]);
             rdir /= sqrt(1 + sqr(rdir[1]));
         }
-        if (rdir.ddot(Vec2d(cur_dir[1], -cur_dir[0])) < 0)
-            rdir = -rdir;
         if (abs(mov.ddot(rdir)) < 1e-6) {
+            if (rdir.ddot(Vec2d(cur_dir[1], -cur_dir[0])) < 0)
+                rdir = -rdir;
             norm = rdir;
         } else {
-            r = (sqr(mov[0]) + sqr(mov[1])) / mov.ddot(rdir);
+            r = (sqr(mov[0]) + sqr(mov[1])) / -mov.ddot(rdir);
             ori = cur_pos + r * rdir;
             norm = des_pos - ori;
         }
     }
     if (norm.ddot(cur_dir) < 0) {
-        return -r / 3.0;
+        return -abs(r) / 3.0;
     } else {
-        return r / 3.0;
+        return abs(r) / 3.0;
     }
 }
