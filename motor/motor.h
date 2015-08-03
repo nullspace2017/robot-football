@@ -7,16 +7,17 @@
 
 class Motor {
 public:
-    static Motor *get_instance();
+    static Motor *get_instance(bool offline = false);
     static void destroy_instance();
     static bool has_instance();
     void go(double radius, double speed);
     void stop();
     std::vector<std::pair<cv::Vec2d, cv::Vec2d> > get_delta();
 private:
-    Motor();
+    Motor(bool offline);
     ~Motor();
     static Motor *m_instance;
+    bool offline;
     bool initialized;
     timeval dw_time_start;
     //double last_radius, last_speed;
