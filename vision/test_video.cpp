@@ -20,8 +20,8 @@ int main() {
     if (!cap.isOpened())
       return -1;
     Transform trans(1);
-    Vision *vis = new Vision(cvRound(cap.get(CAP_PROP_FRAME_HEIGHT)),
-                             cvRound(cap.get(CAP_PROP_FRAME_WIDTH)), &trans);
+    Vision *vis = new Vision(cvRound(cap.get(CV_CAP_PROP_FRAME_HEIGHT)),
+                             cvRound(cap.get(CV_CAP_PROP_FRAME_WIDTH)), &trans);
     while (1) {
         Mat frame;
         cap >> frame;

@@ -12,9 +12,7 @@ SOURCES += \
     ../vision/vision.cpp
 
 HEADERS += \
-    location.h
-
-INCLUDEPATH += ../motor/ \
-    ../vision/
+    location.h \
+    capture.hpp
 
 LIBS += /usr/local/lib/libopencv_*

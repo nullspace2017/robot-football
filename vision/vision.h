@@ -20,7 +20,7 @@ public:
 private:
     enum VCOLOR { VCOLOR_WHITE = 0, VCOLOR_GREEN, VCOLOR_BACKGROUND, VCOLOR_EDGE,
                     VCOLOR_EDGE_POSSIBLE, VCOLOR_OUT_OF_RANGE, VCOLOR_BALL, VCOLOR_BALL_POSSIBLE, VCOLOR_COUNT };
-    enum { VPLAT_HEIGHT = 800, VPLAT_WIDTH = 800, VPLAT_MM_PER_PIXEL = 5 };
+    enum { VPLAT_HEIGHT = 500, VPLAT_WIDTH = 480, VPLAT_MM_PER_PIXEL = 5 };
     static cv::Vec3b const const_vcolors[VCOLOR_COUNT];
     cv::Mat pic;
     int height, width;

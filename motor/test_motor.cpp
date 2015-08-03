@@ -26,9 +26,9 @@ int main() {
 #else
 int main() {
     Motor *motor = Motor::get_instance();
-    motor->test_ctrl_send(4, 4);
-    usleep(500000);
-    motor->test_ctrl_send(0, 0);
+    motor->go(-2000, 0.5);
+    usleep(1000000);
+    motor->stop();
     Motor::destroy_instance();
     return 0;
 }
