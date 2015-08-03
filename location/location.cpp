@@ -79,21 +79,50 @@ static inline T sqr(T x) {
 }
 
 float Location::get_radius() {
-    // NOT FINISHED;
-    Vec2f cur_pos, cur_dir, des_pos, des_dir;
-    Vec2f rdir;// direction of radius;
-    if (des_dir[0] == 0) rdir[0] = 1, rdir[1] = 0;
-    else if (des_dir[1] == 0) rdir[0] = 0, rdir[1] = 1;
-    else  {
-        rdir[0] = 1, rdir[1] = des_dir[1] / des_dir[0];
-        rdir /= sqrt(1 + rdir[1] * rdir[1]);
-    }
+    Vec2f cur_pos(0, 0), cur_dir(0, 1), des_pos(-10, 10), des_dir(0, 1);
+    Vec2f rdir, ori, norm; // direction of radius, origin of circle;
     Vec2f mov = (cur_pos - des_pos) / 2;
-    float r = (sqr(mov[0]) + sqr(mov[1])) / mov.ddot(rdir);
-    Vec2f ori = des_dir + r * rdir;
+    float r;
     if (cur_dir.ddot(des_dir) > 0) {
-        return r / 3.0f;
+        if (abs(des_dir[0]) < 1e-6) rdir = Vec2f(1, 0);
+        else if (abs(des_dir[1]) < 1e-6) rdir = Vec2f(0, 1);
+        else  {
+            rdir = Vec2f(1, des_dir[1] / des_dir[0]);
+            rdir /= sqrt(1 + sqr(rdir[1]));
+        }
+        if (rdir.ddot(Vec2f(des_dir[1], -des_dir[0])) < 0)
+            rdir = -rdir;
+        if (abs(mov.ddot(rdir)) < 1e-6) {
+            if (abs(cur_dir.ddot(rdir)) < 1e-6)
+                return INFINITY;
+            else {
+                norm = rdir;
+            }
+        } else {
+            r = (sqr(mov[0]) + sqr(mov[1])) / mov.ddot(rdir);
+            ori = des_pos + r * rdir;
+            norm = cur_pos - ori;
+        }
     } else {
-        return r;
+        if (abs(cur_dir[0]) < 1e-6) rdir[0] = 1, rdir[1] = 0;
+        else if (abs(cur_dir[1]) < 1e-6) rdir[0] = 0, rdir[1] = 1;
+        else  {
+            rdir[0] = 1, rdir[1] = cur_dir[1] / cur_dir[0];
+            rdir /= sqrt(1 + sqr(rdir[1]));
+        }
+        if (rdir.ddot(Vec2f(cur_dir[1], -cur_dir[0])) < 0)
+            rdir = -rdir;
+        if (abs(mov.ddot(rdir)) < 1e-6) {
+            norm = rdir;
+        } else {
+            r = (sqr(mov[0]) + sqr(mov[1])) / mov.ddot(rdir);
+            ori = cur_pos + r * rdir;
+            norm = des_pos - ori;
+        }
+    }
+    if (norm.ddot(cur_dir) < 0) {
+        return -r / 3.0;
+    } else {
+        return  r / 3.0;
     }
 }
