@@ -22,7 +22,7 @@ int main() {
             motor->stop();
             break;
         }
-        motor->go(-5000, 0.1);
+        motor->go(-5000, 0.2);
         waitKey(50);
     }
     Motor::destroy_instance();
