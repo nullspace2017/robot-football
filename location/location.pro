@@ -15,4 +15,5 @@ HEADERS += \
     location.h \
     capture.hpp
 
-LIBS += /usr/local/lib/libopencv_*
+LIBS += /usr/local/lib/libopencv_* \
+        /usr/lib/libpthread.so

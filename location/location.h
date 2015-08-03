@@ -15,7 +15,7 @@ public:
     std::pair<cv::Vec2d, cv::Vec2d> get_location();
     void set_current_location(cv::Vec2d position, cv::Vec2d direction);
     cv::Mat gen_ground_view(double mm_per_pixel = 8.0); // should get_location first
-    float get_radius();
+    double get_radius(cv::Vec2d, cv::Vec2d);
 private:
     Motor *const motor;
     Ground const ground;

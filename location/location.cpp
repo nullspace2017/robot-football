@@ -85,19 +85,19 @@ static inline T sqr(T x) {
     return x * x;
 }
 
-float Location::get_radius() {
-    Vec2f cur_pos(0, 0), cur_dir(0, 1), des_pos(-10, 10), des_dir(0, 1);
-    Vec2f rdir, ori, norm; // direction of radius, origin of circle;
-    Vec2f mov = (cur_pos - des_pos) / 2;
-    float r;
+double Location::get_radius(Vec2d cur_pos, Vec2d cur_dir) {
+    Vec2d /*cur_pos(0, 0), cur_dir(0, 1), */des_pos(900, 900), des_dir(0, 1);
+    Vec2d rdir, ori, norm; // direction of radius, origin of circle;
+    Vec2d mov = (cur_pos - des_pos) / 2;
+    double r;
     if (cur_dir.ddot(des_dir) > 0) {
-        if (abs(des_dir[0]) < 1e-6) rdir = Vec2f(1, 0);
-        else if (abs(des_dir[1]) < 1e-6) rdir = Vec2f(0, 1);
+        if (abs(des_dir[0]) < 1e-6) rdir = Vec2d(1, 0);
+        else if (abs(des_dir[1]) < 1e-6) rdir = Vec2d(0, 1);
         else  {
-            rdir = Vec2f(1, des_dir[1] / des_dir[0]);
+            rdir = Vec2d(1, des_dir[1] / des_dir[0]);
             rdir /= sqrt(1 + sqr(rdir[1]));
         }
-        if (rdir.ddot(Vec2f(des_dir[1], -des_dir[0])) < 0)
+        if (rdir.ddot(Vec2d(des_dir[1], -des_dir[0])) < 0)
             rdir = -rdir;
         if (abs(mov.ddot(rdir)) < 1e-6) {
             if (abs(cur_dir.ddot(rdir)) < 1e-6)
@@ -111,13 +111,13 @@ float Location::get_radius() {
             norm = cur_pos - ori;
         }
     } else {
-        if (abs(cur_dir[0]) < 1e-6) rdir[0] = 1, rdir[1] = 0;
-        else if (abs(cur_dir[1]) < 1e-6) rdir[0] = 0, rdir[1] = 1;
+        if (abs(cur_dir[0]) < 1e-6) rdir = Vec2d(1, 0);
+        else if (abs(cur_dir[1]) < 1e-6) rdir = Vec2d(0, 1);
         else  {
-            rdir[0] = 1, rdir[1] = cur_dir[1] / cur_dir[0];
+            rdir = Vec2d(1, cur_dir[1] / cur_dir[0]);
             rdir /= sqrt(1 + sqr(rdir[1]));
         }
-        if (rdir.ddot(Vec2f(cur_dir[1], -cur_dir[0])) < 0)
+        if (rdir.ddot(Vec2d(cur_dir[1], -cur_dir[0])) < 0)
             rdir = -rdir;
         if (abs(mov.ddot(rdir)) < 1e-6) {
             norm = rdir;
@@ -130,6 +130,6 @@ float Location::get_radius() {
     if (norm.ddot(cur_dir) < 0) {
         return -r / 3.0;
     } else {
-        return  r / 3.0;
+        return r / 3.0;
     }
 }
