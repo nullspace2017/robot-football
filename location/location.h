@@ -13,8 +13,10 @@ public:
     ~Location();
     void add_camera(cv::VideoCapture *capture, Transform *trans);
     std::pair<cv::Vec2d, cv::Vec2d> get_location();
+    enum BALLSTATE { BALL_NO, BALL_LAST, BALL_HAS };
+    std::pair<Location::BALLSTATE, cv::Vec2d> get_ball(); // should get_location first
     void set_current_location(cv::Vec2d position, cv::Vec2d direction);
-    cv::Mat gen_ground_view(double mm_per_pixel = 8.0); // should get_location first
+    cv::Mat gen_ground_view(double mm_per_pixel = 8.0); // should get_location, get_ball first
     float get_radius();
 private:
     Motor *const motor;
@@ -23,6 +25,8 @@ private:
     std::vector<Vision *> v_vision;
     cv::Vec2d position;
     cv::Vec2d direction;
+    BALLSTATE ball_state;
+    cv::Vec2d ball_pos;
     void try_vision_correct();
 };
 
