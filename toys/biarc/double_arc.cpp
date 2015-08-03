@@ -363,7 +363,7 @@ void BiarcInterp
     }
 }
 
-void generateArcPath(Motor *motor,Location location,cv::Point2d dest_loc,cv::Point2d dest_dir,int speed_level){
+void generateArcPath(Motor *motor,Location &location,cv::Point2d dest_loc,cv::Point2d dest_dir,int speed_level){
     
     // cosntants
     const float pi = 3.141592627;
