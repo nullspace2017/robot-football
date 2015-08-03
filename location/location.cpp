@@ -6,7 +6,8 @@
 using namespace std;
 using namespace cv;
 
-Location::Location(Motor *motor): motor(motor) { }
+Location::Location(Motor *motor): motor(motor),
+    ball_state(Location::BALL_NO) { }
 
 Location::~Location() {
     for (size_t i = 0; i < v_capture.size(); i++)
@@ -32,6 +33,24 @@ std::pair<cv::Vec2d, cv::Vec2d> Location::get_location() {
     }
     try_vision_correct();
     return std::make_pair(position, direction);
+}
+
+std::pair<Location::BALLSTATE, cv::Vec2d> Location::get_ball() {
+    if (ball_state != BALL_NO)
+        ball_state = BALL_LAST;
+    for (size_t i = 0; i < v_capture.size(); i++) {
+        cv::Mat frame;
+        *v_capture[i] >> frame;
+        imshow("frame", frame);
+        if (v_vision[i]->get_ball() != Vision::BALL_NO) {
+            ball_state = BALL_HAS;
+            ball_pos = v_vision[i]->get_ball_pos();
+            cv::Vec2d n(direction[1], -direction[0]);
+            ball_pos = position + ball_pos[0] * n + ball_pos[1] * direction;
+            break;
+        }
+    }
+    return make_pair(ball_state, ball_pos);
 }
 
 void Location::set_current_location(cv::Vec2d position, cv::Vec2d direction) {
@@ -77,6 +96,8 @@ cv::Mat Location::gen_ground_view(double mm_per_pixel) {
     line(view_ground, xy_to_ground_point(position[0], position[1]), xy_to_ground_point(position[0], position[1]), cv::Scalar(0, 255, 0), 5);
     line(view_ground, xy_to_ground_point(position[0], position[1]),
          xy_to_ground_point(position[0] + 10000 * direction[0], position[1] + 10000 * direction[1]), cv::Scalar(0, 255, 0), 1);
+    if (ball_state == BALL_HAS)
+        line(view_ground, xy_to_ground_point(ball_pos[0], ball_pos[1]), xy_to_ground_point(ball_pos[0], ball_pos[1]), cv::Scalar(0, 0, 255), 7);
     return view_ground;
 }
 

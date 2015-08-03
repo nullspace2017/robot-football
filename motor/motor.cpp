@@ -9,21 +9,34 @@
 using namespace std;
 using namespace cv;
 
+class MotorException: public std::exception {
+public:
+    MotorException(std::string msg): msg(msg) { }
+private:
+    char const *what() const throw() {
+        return msg.c_str();
+    }
+    std::string msg;
+};
+
 Motor *Motor::m_instance = 0;
 
-Motor::Motor() {
+Motor::Motor(bool offline) {
+    this->offline = offline;
     initialized = false;
-    tty_init();
-    ctrl_init();
-    static bool exit_binded = false;
-    if (!exit_binded) {
-        signal(SIGINT, [](int signo) {
-            if (Motor::has_instance())
-                Motor::destroy_instance();
-            signal(signo, SIG_DFL);
-            raise(signo);
-        });
-        exit_binded = true;
+    if (!offline) {
+        tty_init();
+        ctrl_init();
+        static bool exit_binded = false;
+        if (!exit_binded) {
+            signal(SIGINT, [](int signo) {
+                if (Motor::has_instance())
+                    Motor::destroy_instance();
+                signal(signo, SIG_DFL);
+                raise(signo);
+            });
+            exit_binded = true;
+        }
     }
     initialized = true;
     ctrl_stop();
@@ -31,12 +44,16 @@ Motor::Motor() {
 
 Motor::~Motor() {
     stop();
-    close(m_motor_fd);
+    if (!offline) {
+        close(m_motor_fd);
+    }
 }
 
-Motor *Motor::get_instance() {
+Motor *Motor::get_instance(bool offline) {
     if (!m_instance)
-        m_instance = new Motor;
+        m_instance = new Motor(offline);
+    if (offline != m_instance->offline)
+        throw MotorException("Motor::get_instance(bool): offline flag does not match");
     return m_instance;
 }
 
@@ -163,17 +180,6 @@ void Motor::update_location() {
 #define AA -102             // acc without late echo, len = 2
 #define AA_ONLY -103        // acc only, len = 2
 
-
-class MotorException: public std::exception {
-public:
-    MotorException(std::string msg): msg(msg) { }
-private:
-    char const *what() const throw() {
-        return msg.c_str();
-    }
-    std::string msg;
-};
-
 void Motor::tty_init() {
     static char const dev[] = "/dev/ttyUSB0";
     if ((m_motor_fd = open(dev, O_RDWR | O_NOCTTY)) < 0)
@@ -201,6 +207,8 @@ void Motor::ctrl_send(void *buf, int len) {
     if (!initialized) {
         throw MotorException("Motor::ctrl_send(void *, int): not initialized");
     }
+    if (offline)
+        return;
     if (write(m_motor_fd, buf, len) != len)
         throw MotorException("Motor::ctrl_send(void *, in): write error");
 }
