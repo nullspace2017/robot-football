@@ -104,7 +104,7 @@ int Vision::get_ball() {
 }
 
 int Vision::get_ball_color() { //huanglj
-    int iLowH = 100, iHighH = 145, iLowS = 40, iHighS = 255, iLowV = 60, iHighV = 255;
+    int iLowH = 160, iHighH = 179, iLowS = 40, iHighS = 255, iLowV = 60, iHighV = 255;
 
     Mat imgHSV;
     cvtColor(pic, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
@@ -198,7 +198,7 @@ int Vision::get_ball_color() { //huanglj
             }
         }
 //        ballr = cntr/cnt_total * 1.5;
-        ballr = pow(1.5*cntr/M_PI, 1.0/3) * 1.2;
+        ballr = pow(1.5*cntr/M_PI, 1.0/3);
         cout << ballx << ' ' << bally << ' ' << ballr << '\n';
         cout << cntr << '\n';
 
@@ -225,7 +225,7 @@ int Vision::get_ball_color() { //huanglj
 
 int Vision::get_ball_hough() { //huanglj
     // 这里的坐标系: x=u,y=v
-    int iLowH = 100, iHighH = 170, iLowS = 40, iHighS = 255, iLowV = 60, iHighV = 255;
+    int iLowH = 160, iHighH = 179, iLowS = 60, iHighS = 255, iLowV = 0, iHighV = 255;
 
     Mat imgHSV;
     cvtColor(pic, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
@@ -235,43 +235,19 @@ int Vision::get_ball_hough() { //huanglj
 
     for (int i = 0; i < height; i ++) {
         uchar *dt = imgThresholded.ptr<uchar>(i);
-        uchar *di = pic.ptr<uchar>(i);
         for (int j = 0; j < width; j ++) {
-            uchar b = di[j*pic.channels()], g = di[j*pic.channels()+1], r = di[j*pic.channels()+2];
-            if (b > 100 && g < 80 && r < 80) {
-                dt[j] = 0;
-                continue;
-            }
-            if (g < 60 && r > 100) {
-                dt[j] = 0;
-                continue;
-            }
             if (v_pic[i][j] == VCOLOR_WHITE || v_pic[i][j] == VCOLOR_EDGE || v_pic[i][j] == VCOLOR_GREEN) {
                 dt[j] = 0;
                 continue;
             }
         }
     }
-    imshow("thresh 0", imgThresholded);
-
-    //morphological closing (removes small holes from the foreground)
-    dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-
-    //morphological opening (removes small objects from the foreground)
-    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(20, 20)) );
-    dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(20, 20)) );
-    imshow("thresh 1", imgThresholded);
-
     Mat img = pic, gray, can;
     cvtColor(img, gray, CV_BGR2GRAY);
     // smooth it, otherwise a lot of false circles may be detected
-    Canny(img, can, 50, 100);
-    imshow("can", can);
     GaussianBlur(gray, gray, Size(9, 9), 2, 2 );
     vector<Vec3f> circles;
-    HoughCircles(gray, circles, CV_HOUGH_GRADIENT, 1.5, 20, 100, 43);
-    cout << "circles.size:" << circles.size() << '\n';
+    HoughCircles(gray, circles, CV_HOUGH_GRADIENT, 1.5, 20, 150, 45);
 
     int isBall = -1, alterBall = -1;
     double max_rate = 0, max_radius = 0;
@@ -282,8 +258,7 @@ int Vision::get_ball_hough() { //huanglj
         cut_to_rect(y1, x1);
         cut_to_rect(y2, x2);
         int cnt_total = 0, cnt_ball = 0;
-        double ball_rate = 0.3, thresh_rate = 0.9;
-        cout << "y1:" << y1 << " y2:" << y2 << '\n';
+        double ball_rate = 0.3, thresh_rate = 0.8;
         for (int y = y1; y <y2; y ++) {
             double tempc = centerr, tempa = fabs(centery - y);
             double tempb = sqrt(tempc*tempc - tempa*tempa);
@@ -306,11 +281,8 @@ int Vision::get_ball_hough() { //huanglj
             alterBall = i;
             max_rate = temp_rate;
         }
-        cout << i << ' ' << centerx << ' ' << centery << ' ' << centerr << '\n';
-        cout << i << ' ' << temp_rate << ' ' << isBall << '\n';
     }
     if (isBall == -1) isBall = alterBall;
-    cout << "isBall:" << isBall << '\n';
 
     for (size_t i = 0; i < circles.size(); i++ ) {
         Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
@@ -320,13 +292,11 @@ int Vision::get_ball_hough() { //huanglj
             ballx = circles[i][0];
             bally = circles[i][1];
             ballr = circles[i][2];
-            circle(img, center, radius, Scalar(255,0,0), 1, 8, 0);
+            circle(img, center, radius, Scalar(255,0,0), 3, 8, 0);
         } else {
             circle(img, center, radius, Scalar(0,0,255), 1, 8, 0 );
         }
     }
-    imshow("circles", img );
-
     if (isBall == -1) {
         return BALL_NO;
     } else {

@@ -27,7 +27,6 @@ Mat getHistImg(const Mat& hist, const Scalar& s) {
     
     int hpt = int(0.9 * histSize);
 
-    cout << s << endl;
     for (int h = 0; h < histSize; h ++) {
         float binVal = hist.at<float>(h);
         int intensity = int(binVal*hpt/maxVal);
