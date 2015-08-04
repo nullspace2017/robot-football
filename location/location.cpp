@@ -22,6 +22,10 @@ void Location::add_camera(cv::VideoCapture *capture, Transform *trans) {
                                   cvRound(capture->get(CV_CAP_PROP_FRAME_WIDTH)), trans));
 }
 
+void Location::add_server(Server *server) {
+    v_server.push_back(server);
+}
+
 std::pair<cv::Vec2d, cv::Vec2d> Location::get_location() {
     std::vector<std::pair<cv::Vec2d, cv::Vec2d> > v_delta = motor->get_delta();
     for (auto it = v_delta.begin(); it != v_delta.end(); it++) {

@@ -13,6 +13,8 @@ int main() {
     Location location(motor);
     location.add_camera(&capture1, &trans1);
     location.set_current_location(cv::Vec2d(0, 0), cv::Vec2d(0, 1));
+    Server server;
+    location.add_server(&server);
     while (1) {
         Vec2d loc = location.get_location().first;
         location.get_ball();
