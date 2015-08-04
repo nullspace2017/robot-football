@@ -5,13 +5,12 @@ CONFIG -= qt
 CONFIG += c++11
 
 SOURCES += \
-    test_video.cpp \
     vision.cpp \
-    transform.cpp
+    test_vision.cpp
 
 HEADERS += \
     vision.h \
-    transform.h \
-    ground.hpp
+    ground.hpp \
+    transform.hpp
 
 LIBS += /usr/local/lib/libopencv_*

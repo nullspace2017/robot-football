@@ -8,11 +8,10 @@ SOURCES += \
     location.cpp \
     test_location.cpp \
     ../motor/motor.cpp \
-    ../vision/transform.cpp \
     ../vision/vision.cpp
 
 HEADERS += \
-    location.h \
+    location.hpp \
     capture.hpp
 
 LIBS += `pkg-config --libs opencv`
