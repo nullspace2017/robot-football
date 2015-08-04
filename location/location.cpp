@@ -106,8 +106,8 @@ static inline T sqr(T x) {
     return x * x;
 }
 
-double Location::get_radius(Vec2d cur_pos, Vec2d cur_dir) {
-    Vec2d /*cur_pos(0, 0), cur_dir(0, 1), */des_pos(1700, 4000), des_dir(0, -1);
+double Location::get_radius(Vec2d cur_pos, Vec2d cur_dir, Vec2d des_pos, Vec2d des_dir) {
+//    Vec2d cur_pos(0, 0), cur_dir(0, 1), des_pos(1700, 4000), des_dir(0, -1);
     Vec2d rdir, ori, norm; // direction of radius, origin of circle;
     Vec2d mov = (cur_pos - des_pos) / 2;
     double r;
@@ -132,7 +132,6 @@ double Location::get_radius(Vec2d cur_pos, Vec2d cur_dir) {
             norm = cur_pos - ori;
         }
     } else {
-        cout << "~" << endl;
         if (abs(cur_dir[0]) < 1e-6) rdir = Vec2d(1, 0);
         else if (abs(cur_dir[1]) < 1e-6) rdir = Vec2d(0, 1);
         else  {
