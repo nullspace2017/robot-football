@@ -12,11 +12,10 @@ public:
     ~Vision();
     void input(cv::Mat const &in);
     void get_location(cv::Vec2f &pos, cv::Vec2f &direct, double &location_confidence);
-    cv::Vec2d get_ball_pos();
-    int get_ball();
+    enum BALLSTATE { BALL_NO, BALL_HAS };
+    void get_ball_pos(cv::Vec2f &pos, BALLSTATE &ball_state);
     cv::Mat gen_as_pic();
     cv::Mat gen_platform();
-    enum BALLPOS {BALL_HAS = 0, BALL_NEAR, BALL_FRONT, BALL_NO, BALLPOS_COUNT};
 private:
     enum VCOLOR { VCOLOR_WHITE = 0, VCOLOR_GREEN, VCOLOR_BACKGROUND, VCOLOR_EDGE,
                     VCOLOR_EDGE_POSSIBLE, VCOLOR_OUT_OF_RANGE, VCOLOR_BALL, VCOLOR_BALL_POSSIBLE, VCOLOR_COUNT };
@@ -33,16 +32,17 @@ private:
     cv::Vec2f robot_pos;
     cv::Vec2f robot_direct;
     double robot_location_confidence;
-    Transform *trans;
+    BALLSTATE ball_state;
     int ballx, bally, ballr;
+    Transform *trans;
 private:
     void pre_copy();
     void get_edge_white();
     void update_plat();
     void get_white_lines();
     void match_robot_pos();
-    int get_ball_color();
-    int get_ball_hough();
+    void get_ball_color();
+    void get_ball_hough();
 private: // helper functions
     bool in_rect(int x, int y) { return x >= 0 && x < height && y >= 0 && y < width; }
     bool cut_to_rect(int &x, int &y) {

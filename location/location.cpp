@@ -38,15 +38,14 @@ std::pair<cv::Vec2d, cv::Vec2d> Location::get_location() {
 std::pair<Location::BALLSTATE, cv::Vec2d> Location::get_ball() {
     if (ball_state != BALL_NO)
         ball_state = BALL_LAST;
-    for (size_t i = 0; i < v_capture.size(); i++) {
-        cv::Mat frame;
-        *v_capture[i] >> frame;
-        imshow("frame", frame);
-        if (v_vision[i]->get_ball() != Vision::BALL_NO) {
-            ball_state = BALL_HAS;
-            ball_pos = v_vision[i]->get_ball_pos();
+    for (size_t i = 0; i < v_vision.size(); i++) {
+        Vision::BALLSTATE ball_state;
+        cv::Vec2f ball_pos;
+        v_vision[i]->get_ball_pos(ball_pos, ball_state);
+        if (ball_state == Vision::BALL_HAS) {
+            this->ball_state = BALL_HAS;
             cv::Vec2d n(direction[1], -direction[0]);
-            ball_pos = position + ball_pos[0] * n + ball_pos[1] * direction;
+            this->ball_pos = position + ball_pos[0] * n + ball_pos[1] * direction;
             break;
         }
     }
@@ -66,7 +65,8 @@ void Location::try_vision_correct() {
     for (size_t i = 0; i < v_capture.size(); i++) {
         cv::Mat frame;
         *v_capture[i] >> frame;
-        imshow("frame", frame);
+        char buf[32] = {'f', 'r', 'a', 'm', 'e', (char)('0' + i), '\0'};
+        imshow(buf, frame);
         v_vision[i]->input(frame);
         cv::Vec2f pos;
         cv::Vec2f direct;
@@ -132,7 +132,6 @@ double Location::get_radius(Vec2d cur_pos, Vec2d cur_dir) {
             norm = cur_pos - ori;
         }
     } else {
-        cout << "~" << endl;
         if (abs(cur_dir[0]) < 1e-6) rdir = Vec2d(1, 0);
         else if (abs(cur_dir[1]) < 1e-6) rdir = Vec2d(0, 1);
         else  {
