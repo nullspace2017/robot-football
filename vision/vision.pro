@@ -13,4 +13,4 @@ HEADERS += \
     ground.hpp \
     transform.hpp
 
-LIBS += /usr/local/lib/libopencv_*
+LIBS += `pkg-config --libs opencv`
