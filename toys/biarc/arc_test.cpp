@@ -12,7 +12,7 @@ int main(){
 	cv::Point2d dest_loc = cv::Point2d(-600,2000);
     cv::Point2d dest_dir = cv::Point2d(0,1);
     
-    generateArcPath(motor,location,dest_loc,dest_dir,30);
+    generateArcPath(motor,location,dest_loc,dest_dir,0.6);
 
 	Motor::destroy_instance();
 	return 0;

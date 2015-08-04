@@ -1,4 +1,4 @@
-#include "double_arc.h"
+ #include "double_arc.h"
 
 float Vec_DotProduct(const tVec3 & lhs, const tVec3 & rhs)
 {
@@ -363,20 +363,18 @@ void BiarcInterp
     }
 }
 
-void generateArcPath(Motor *motor,Location &location,cv::Point2d dest_loc,cv::Point2d dest_dir,int speed_level){
+void generateArcPath(Motor *motor,Location &location,cv::Point2d dest_loc,cv::Point2d dest_dir,float speed){
     
     // cosntants
     const float pi = 3.141592627;
-    const float d_wheel = 310.0;
-    const int MAX_SPEED_SELECTION = 50;
 
-    assert(speed_level>=-50 and speed_level <= 50); // normalization is checked when arcs are computed
+    assert(speed>=-1 and speed <= 1); // other normalizations are checked when arcs are computed
     cv::Point2d start_loc = location.get_location().first;
     cv::Point2d start_dir = location.get_location().second;
     //cv::Point2d start_loc = cv::Point2d(50,50);
     //cv::Point2d start_dir = cv::Point2d(0.707,0.707);
 
-    // rotating + tranforming to machine coord.
+    // rotating + tranforming to machine coord. system
     float start_dir_angle = atan2(start_dir.y,start_dir.x);
     float dest_dir_angle = atan2(dest_dir.y,dest_dir.x);
     float diff_angle = pi/2 - start_dir_angle;
@@ -384,65 +382,49 @@ void generateArcPath(Motor *motor,Location &location,cv::Point2d dest_loc,cv::Po
     float dist = sqrt( (start_to_dest.x)*(start_to_dest.x) +
         (start_to_dest.y)*(start_to_dest.y) ); 
     float dist_angle = atan2(start_to_dest.y,start_to_dest.x)+diff_angle;
-    tVec3 start = {0,0,0} , end = {cos(dist_angle)*dist,sin(dist_angle)*dist,0};
-    tVec3 start_v = {0,1,0} , end_v = {cos(diff_angle+dest_dir_angle),sin(diff_angle+dest_dir_angle),0};
+    tVec3 start = {0,0,0} , end = {std::cos(dist_angle)*dist,std::sin(dist_angle)*dist,0};
+    tVec3 start_v = {0,1,0} , end_v = {std::cos(diff_angle+dest_dir_angle),std::sin(diff_angle+dest_dir_angle),0};
     
-    int t;  bool is_l_not_r;
-    float center_radius1,center_radius2, center_velocity,center_arc;
+    // variables used in biarc computation
+    bool is_l_not_r;
+    float center_radius1,center_radius2;
     tBiarcInterp_Arc pArc1,pArc2;
     BiarcInterp_ComputeArcs(&pArc1,&pArc2,start,start_v,end,end_v);
 
     // first arc
     center_radius1 = 0-pArc1.m_center.m_x;
     is_l_not_r = center_radius1 > 0;
-    center_velocity = 10;//motor->get_speed(speed_level,is_l_not_r) *(abs(center_radius1))/(abs(center_radius1)+d_wheel/2);
-    center_arc = pArc1.m_arcLen;
-    printf("ar1len:%f\n",pArc1.m_arcLen );
-    printf("ar2len:%f\n",pArc2.m_arcLen );
-    t = int(center_arc/center_velocity*1000000);
-    motor->go(center_radius1,speed_level*1.0/MAX_SPEED_SELECTION);
-    printf("%d\n", t);
-    usleep(t);
-    printf("%d,%f,%f\n",t,center_radius1,speed_level*1.0/MAX_SPEED_SELECTION);
+    motor->go(center_radius1,speed);
     
     // second arc
     diff_angle = is_l_not_r? pArc1.m_angle : - pArc1.m_angle;
     float angle = pi/2 + diff_angle;
-    printf("mangle1:%f\n",angle );
+    
+    // inter point
     tVec3 inter_point;
     BiarcInterp(&inter_point,pArc1,pArc2,pArc1.m_arcLen/(pArc1.m_arcLen+pArc2.m_arcLen));
-    printf("dx:%f,dy:%f\n",cos(angle),sin(angle));
-    tVec3 dir = {cos(angle),sin(angle),0}, 
+    tVec3 dir = {std::cos(angle),std::sin(angle),0}, 
           ptoc = {pArc2.m_center.m_x-inter_point.m_x,pArc2.m_center.m_y-inter_point.m_y,0};
     tVec3 res;
     Vec_CrossProduct(&res,dir,ptoc);
-    printf("z:%f\n",res.m_z );
-    is_l_not_r = res.m_z > 0;
+    is_l_not_r = res.m_z > 0;// clockwise or counterclock
     center_radius2 = is_l_not_r? pArc2.m_radius:-pArc2.m_radius;
-    center_velocity = 10;// motor->get_speed(speed_level,is_l_not_r) *(abs(center_radius2))/(abs(center_radius2)+d_wheel/2);
-    center_arc = pArc2.m_arcLen;
-    t = int(center_arc/center_velocity*1000000);
-    motor->go(center_radius2,speed_level*1.0/MAX_SPEED_SELECTION);
-    usleep(t);
-    motor->stop();
-    printf("%d,%f,%f\n",t,center_radius2,speed_level*1.0/MAX_SPEED_SELECTION);
-
+    
+    // processing first arc
     float dist_to_middle = (start_loc.x-inter_point.m_x)*(start_loc.x-inter_point.m_x) 
-                        +   (start_loc.y-inter_point.m_y)*(start_loc.y-inter_point.m_y);
-
+                        +   (start_loc.y-inter_point.m_y)*(start_loc.y-inter_point.m_y);    
     motor->go(center_radius1, 0.6);
     while (1) {
-        
         start_loc = location.get_location().first;
         start_dir = location.get_location().second;
         float temp_dist  = (start_loc.x-inter_point.m_x)*(start_loc.x-inter_point.m_x) 
                         +   (start_loc.y-inter_point.m_y)*(start_loc.y-inter_point.m_y);
-        if(temp_dist <= dist_to_middle){
-            dist_to_middle = temp_dist;
+        if(temp_dist > dist_to_middle){
             break;
         }dist_to_middle = temp_dist;
     }
 
+    // processing second arc
     float dist_to_end = (start_loc.x - dest_loc.x)*(start_loc.x - dest_loc.x) 
                         +   (start_loc.y - dest_loc.y)*(start_loc.y - dest_loc.y);
     motor->go(center_radius2, 0.6);
@@ -451,8 +433,7 @@ void generateArcPath(Motor *motor,Location &location,cv::Point2d dest_loc,cv::Po
         start_dir = location.get_location().second;
         float temp_dist  = (start_loc.x - dest_loc.x)*(start_loc.x - dest_loc.x) 
                         +   (start_loc.y - dest_loc.y)*(start_loc.y - dest_loc.y);
-        if(temp_dist <= dist_to_end){
-            dist_to_end = temp_dist;
+        if(temp_dist > dist_to_end){
             break;
         }dist_to_end = temp_dist;
     }

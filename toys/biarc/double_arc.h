@@ -148,6 +148,6 @@ void BiarcInterp
     float                       frac        // [0,1] fraction along the biarc
 );
 
-void generateArcPath(Motor *motor,Location location,cv::Point2d dest_loc,cv::Point2d dest_dir,int speed_level);
+void generateArcPath(Motor *motor,Location &location,cv::Point2d dest_loc,cv::Point2d dest_dir,float speed);
 
 #endif
