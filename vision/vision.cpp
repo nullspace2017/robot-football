@@ -30,7 +30,6 @@ Vision::Vision(int height, int width, Transform *trans):
     v_plat_pool = new uchar[VPLAT_HEIGHT * VPLAT_WIDTH];
     for (int i = 0; i < VPLAT_HEIGHT; i++)
         v_plat[i] = v_plat_pool + i * VPLAT_WIDTH;
-    init_ground();
 }
 
 Vision::~Vision() {
@@ -335,21 +334,6 @@ int Vision::get_ball_hough() { //huanglj
     }
 }
 
-void Vision::init_ground() {
-    ground.clear();
-    ground.push_back(Vec4f(   0,    0, 1800,    0));
-    ground.push_back(Vec4f( 350,  640, 1450,  640));
-    ground.push_back(Vec4f(   0, 2200, 1800, 2200));
-    ground.push_back(Vec4f( 350, 3760, 1450, 3760));
-    ground.push_back(Vec4f(   0, 4400, 1800, 4400));
-    ground.push_back(Vec4f( 350,    0,  350,  640));
-    ground.push_back(Vec4f(1450,    0, 1450,  640));
-    ground.push_back(Vec4f( 350, 3760,  350, 4400));
-    ground.push_back(Vec4f(1450, 3760, 1450, 4400));
-    ground.push_back(Vec4f(   0,    0,    0, 4400));
-    ground.push_back(Vec4f(1800,    0, 1800, 4400));
-}
-
 void Vision::pre_copy() {
     static auto get_color = [&](uchar h, uchar s, uchar v) {
         if (h > 102 && h < 137 && s > 90 && s < 150) return VCOLOR_GREEN;
@@ -652,25 +636,16 @@ void Vision::match_robot_pos() {
             }
         }
     }
-    enum {GROUND_WIDTH = 1800, GROUND_HEIGHT = 4400, GROUND_MM_PER_PIXEL = 8};
-    Mat view_ground(GROUND_HEIGHT / GROUND_MM_PER_PIXEL, GROUND_WIDTH / GROUND_MM_PER_PIXEL, CV_8UC3, Scalar::all(0));
-    auto xy_to_ground_point = [&](double xw, double yw) {
-        return Point(xw / GROUND_MM_PER_PIXEL, (GROUND_HEIGHT - yw) / GROUND_MM_PER_PIXEL);
-    };
-    for (size_t i = 0; i < ground.size(); i++) {
-        Vec4f const &l(ground[i]);
-        line(view_ground, xy_to_ground_point(l[0], l[1]), xy_to_ground_point(l[2], l[3]), Scalar::all(255), 2);
-    }
     vector<Point2f> ground_line_normal;
-    for (size_t i = 0; i < ground.size(); i++) {
-        Vec4f line = ground[i];
+    for (size_t i = 0; i < ground.lines.size(); i++) {
+        Vec4f line = ground.lines[i];
         Vec2f n(line[3] - line[1], line[0] - line[2]);
         ground_line_normal.push_back(n / sqrt(n.dot(n)));
     }
     static auto nearest_line_dist_2 = [&](Point2f const &p) {
         float min_dist = 1e20;
-        for (size_t i = 0; i < ground.size(); i++) {
-            Vec4f const &line(ground[i]);
+        for (size_t i = 0; i < ground.lines.size(); i++) {
+            Vec4f const &line(ground.lines[i]);
             Point2f p1(line[0], line[1]), p2(line[2], line[3]);
             float dist;
             Point2f vec_p_p1 = p - p1;
@@ -687,12 +662,13 @@ void Vision::match_robot_pos() {
     vector<pair<float, pair<int, Point2f> > > verr;
     min_error = 1e20;
     if (white_lines.size() < 10) {
+        Mat view_ground = ground.gen_ground_view();
         for (int m = 0; m < 4; m++) {
             //float delta = delta_base + CV_PI / 2 * m;
             vector<Point2f> possible_pos;
             for (int i = 0; i <= 1800; i += 50) {
                 for (int j = 0; j <= 2200; j += 50) {
-                    line(view_ground, xy_to_ground_point(i, j), xy_to_ground_point(i, j), Scalar::all(127), 3);
+                    line(view_ground, ground.xy_to_uv(i, j), ground.xy_to_uv(i, j), Scalar::all(127), 3);
                     possible_pos.push_back(Point2f(i, j));
                 }
             }
@@ -705,11 +681,6 @@ void Vision::match_robot_pos() {
                     sum_error += err;
                     if (sum_error > min_filt * 3)
                         break;
-                }
-                if (sum_error < 100) {
-                    cout << sum_error << endl;
-                    line(view_ground, xy_to_ground_point(supposed_pos.x, supposed_pos.y),
-                         xy_to_ground_point(supposed_pos.x, supposed_pos.y), Scalar(0, 0, 255), 3);
                 }
                 sum_error /= white_point_in_robot[m].size();
                 if (sum_error < min_error)
@@ -743,12 +714,10 @@ void Vision::match_robot_pos() {
             int m = min_loc.first;
             Point2f min_pos(robot_pos[0], robot_pos[1]);
             float min_delta = robot_delta;
-            line(view_ground, xy_to_ground_point(min_pos.x, min_pos.y), xy_to_ground_point(min_pos.x, min_pos.y), Scalar(0, 255, 0), 5);
-            line(view_ground, xy_to_ground_point(min_pos.x, min_pos.y),
-                 xy_to_ground_point(min_pos.x + 10000 * sin(min_delta), min_pos.y + 10000 * cos(min_delta)), Scalar(0, 255, 0), 1);
+            ground.draw_robot(view_ground, min_pos, Vec2f(sin(min_delta), cos(min_delta)));
             for (auto it = white_point_in_robot[m].begin(); it != white_point_in_robot[m].end(); it++) {
                 Point2f p = *it + min_pos;
-                line(view_ground, xy_to_ground_point(p.x, p.y), xy_to_ground_point(p.x, p.y), Scalar(0, 0, 191), 2);
+                line(view_ground, ground.xy_to_uv(p.x, p.y), ground.xy_to_uv(p.x, p.y), Scalar(0, 0, 191), 2);
             }
         }
         imshow("view_ground", view_ground);

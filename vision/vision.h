@@ -29,14 +29,13 @@ private:
     uchar **v_plat;
     uchar *v_plat_pool;
     std::vector<cv::Vec2f> white_lines;
-    std::vector<cv::Vec4f> ground;
+    Ground ground;
     cv::Vec2f robot_pos;
     cv::Vec2f robot_direct;
     double robot_location_confidence;
     Transform *trans;
     int ballx, bally, ballr;
 private:
-    void init_ground();
     void pre_copy();
     void get_edge_white();
     void update_plat();
