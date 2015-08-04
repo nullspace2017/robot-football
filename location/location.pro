@@ -12,7 +12,12 @@ SOURCES += \
 
 HEADERS += \
     location.hpp \
-    capture.hpp
+    location.h \
+    capture.hpp \
+    ../motor/motor.h \
+    ../vision/vision.h \
+    ../vision/ground.hpp \
+    ../vision/transform.hpp
 
 LIBS += `pkg-config --libs opencv`
     -lpthread
