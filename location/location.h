@@ -16,7 +16,7 @@ public:
     enum BALLSTATE { BALL_NO, BALL_LAST, BALL_HAS };
     std::pair<Location::BALLSTATE, cv::Vec2d> get_ball(); // should get_location first
     void set_current_location(cv::Vec2d position, cv::Vec2d direction);
-    cv::Mat gen_ground_view(double mm_per_pixel = 8.0); // should get_location, get_ball first
+    cv::Mat gen_ground_view(); // should get_location, get_ball first
     double get_radius(cv::Vec2d, cv::Vec2d, cv::Vec2d, cv::Vec2d);
 private:
     Motor *const motor;
