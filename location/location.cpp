@@ -38,15 +38,14 @@ std::pair<cv::Vec2d, cv::Vec2d> Location::get_location() {
 std::pair<Location::BALLSTATE, cv::Vec2d> Location::get_ball() {
     if (ball_state != BALL_NO)
         ball_state = BALL_LAST;
-    for (size_t i = 0; i < v_capture.size(); i++) {
-        cv::Mat frame;
-        *v_capture[i] >> frame;
-        imshow("frame", frame);
-        if (v_vision[i]->get_ball() != Vision::BALL_NO) {
-            ball_state = BALL_HAS;
-            ball_pos = v_vision[i]->get_ball_pos();
+    for (size_t i = 0; i < v_vision.size(); i++) {
+        Vision::BALLSTATE ball_state;
+        cv::Vec2f ball_pos;
+        v_vision[i]->get_ball_pos(ball_pos, ball_state);
+        if (ball_state == Vision::BALL_HAS) {
+            this->ball_state = BALL_HAS;
             cv::Vec2d n(direction[1], -direction[0]);
-            ball_pos = position + ball_pos[0] * n + ball_pos[1] * direction;
+            this->ball_pos = position + ball_pos[0] * n + ball_pos[1] * direction;
             break;
         }
     }
@@ -66,7 +65,8 @@ void Location::try_vision_correct() {
     for (size_t i = 0; i < v_capture.size(); i++) {
         cv::Mat frame;
         *v_capture[i] >> frame;
-        imshow("frame", frame);
+        char buf[32] = {'f', 'r', 'a', 'm', 'e', (char)('0' + i), '\0'};
+        imshow(buf, frame);
         v_vision[i]->input(frame);
         cv::Vec2f pos;
         cv::Vec2f direct;
@@ -84,21 +84,13 @@ void Location::try_vision_correct() {
     }
 }
 
-cv::Mat Location::gen_ground_view(double mm_per_pixel) {
-    auto xy_to_ground_point = [&](double xw, double yw) {
-        return cv::Point(xw / mm_per_pixel, (ground.height - yw) / mm_per_pixel);
-    };
-    cv::Mat view_ground(ground.height / mm_per_pixel, ground.width / mm_per_pixel, CV_8UC3, cv::Scalar::all(0));
-    for (size_t i = 0; i < ground.lines.size(); i++) {
-        cv::Vec4f const &l(ground.lines[i]);
-        line(view_ground, xy_to_ground_point(l[0], l[1]), xy_to_ground_point(l[2], l[3]), cv::Scalar::all(255), 2);
-    }
-    line(view_ground, xy_to_ground_point(position[0], position[1]), xy_to_ground_point(position[0], position[1]), cv::Scalar(0, 255, 0), 5);
-    line(view_ground, xy_to_ground_point(position[0], position[1]),
-         xy_to_ground_point(position[0] + 10000 * direction[0], position[1] + 10000 * direction[1]), cv::Scalar(0, 255, 0), 1);
+cv::Mat Location::gen_ground_view() {
+    Mat ground_view = ground.gen_ground_view();
+    ground.draw_robot(ground_view, position, direction);
     if (ball_state == BALL_HAS)
-        line(view_ground, xy_to_ground_point(ball_pos[0], ball_pos[1]), xy_to_ground_point(ball_pos[0], ball_pos[1]), cv::Scalar(0, 0, 255), 7);
-    return view_ground;
+        line(ground_view, ground.xy_to_uv(ball_pos[0], ball_pos[1]),
+                ground.xy_to_uv(ball_pos[0], ball_pos[1]), cv::Scalar(0, 0, 255), 7);
+    return ground_view;
 }
 
 template <typename T>

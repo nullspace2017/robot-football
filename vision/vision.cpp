@@ -30,7 +30,6 @@ Vision::Vision(int height, int width, Transform *trans):
     v_plat_pool = new uchar[VPLAT_HEIGHT * VPLAT_WIDTH];
     for (int i = 0; i < VPLAT_HEIGHT; i++)
         v_plat[i] = v_plat_pool + i * VPLAT_WIDTH;
-    init_ground();
 }
 
 Vision::~Vision() {
@@ -50,12 +49,18 @@ void Vision::input(Mat const &in) {
     update_plat();
     get_white_lines();
     match_robot_pos();
+    get_ball_hough();
 }
 
 void Vision::get_location(Vec2f &pos, Vec2f &direct, double &location_confidence) {
     pos = robot_pos;
     direct = robot_direct;
     location_confidence = robot_location_confidence;
+}
+
+void Vision::get_ball_pos(Vec2f &pos, Vision::BALLSTATE &ball_state) {
+    pos = trans->uv_to_xy(ballx, bally + ballr);
+    ball_state = this->ball_state;
 }
 
 cv::Mat Vision::gen_as_pic() {
@@ -90,283 +95,6 @@ cv::Mat Vision::gen_platform() {
         line(out, pt1, pt2, Scalar(128,0,255), 1, 8 );
     }
     return out;
-}
-
-Vec2d Vision::get_ball_pos() {
-    return trans->uv_to_xy(ballx, bally + ballr);
-}
-
-int Vision::get_ball() {
-    if (get_ball_hough() == BALL_HAS) {
-        return BALL_HAS;
-    } else {
-        return BALL_NO;
-    }
-}
-
-int Vision::get_ball_color() { //huanglj
-    int iLowH = 100, iHighH = 145, iLowS = 40, iHighS = 255, iLowV = 60, iHighV = 255;
-
-    Mat imgHSV;
-    cvtColor(pic, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
-
-    Mat imgThresholded;
-    inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholded); //Threshold the image
-    imshow("old thresh", imgThresholded);
-
-    for (int i = 0; i < height; i ++) {
-        uchar *dt = imgThresholded.ptr<uchar>(i);
-//        uchar *di = pic.ptr<uchar>(i);
-        for (int j = 0; j < width; j ++) {
-//            uchar b = di[j*pic.channels()], g = di[j*pic.channels()+1], r = di[j*pic.channels()+2];
-            if (v_pic[i][j] == VCOLOR_WHITE || v_pic[i][j] == VCOLOR_EDGE || v_pic[i][j] == VCOLOR_GREEN) {
-                dt[j] = 0;
-                continue;
-            }
-        }
-    }
-
-    imshow("thresh 1", imgThresholded);
-
-
-    //morphological closing (removes small holes from the foreground)
-    dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(10, 10)) );
-    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(10, 10)) );
-
-    //morphological opening (removes small objects from the foreground)
-    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(20, 20)) );
-    dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(20, 20)) );
-    imshow("thresh", imgThresholded);
-
-    for (int i = 0; i < height; i ++) {
-        uchar *dt = imgThresholded.ptr<uchar>(i);
-        for (int j = 0; j < width; j ++) {
-            if (dt[j] == 255) v_pic[i][j] = VCOLOR_BALL_POSSIBLE;
-        }
-    }
-
-    for (int i = 0; i < height; i += 2) {
-        for (int j = 0; j < width; j += 2) {
-            if (v_pic[i][j] != VCOLOR_BALL_POSSIBLE) continue;
-            static int const dx = 20, dy = 20;
-            static double const gr_rate = 0.4;
-            int x1 = i - dx, x2 = i + dx;
-            int y1 = j - dy, y2 = j + dy;
-            cut_to_rect(x1, y1);
-            cut_to_rect(x2, y2);
-            int cnt_gr = 0, cnt_total = 0;
-            static auto add_to_cnt = [&](uchar color) {
-                cnt_total ++;
-                if (color == VCOLOR_GREEN) cnt_gr ++;
-            };
-            for (int k = x1; k <= x2; k++) {
-                add_to_cnt(v_pic[k][y1]);
-                add_to_cnt(v_pic[k][y2]);
-            }
-            for (int k = y1 + 1; k < y2; k++) {
-                add_to_cnt(v_pic[x1][k]);
-                add_to_cnt(v_pic[x2][k]);
-            }
-
-            if (cnt_gr > cnt_total*gr_rate) {
-                v_pic[i][j] = VCOLOR_BALL;
-                expand_to_ball(i, j);
-            }
-        }
-    }
-
-    int cntx = 0, cnty = 0, cnt_total = 0;
-    double cntr = 0;
-    for (int i = 0; i < height; i ++) {
-        for (int j = 0; j < width; j ++) {
-            if (v_pic[i][j] == VCOLOR_BALL) {
-                cnt_total ++;
-                cntx += j;
-                cnty += i;
-            }
-        }
-    }
-    if (cnt_total == 0) {
-        return BALL_NO;
-    } else {
-        ballx = cntx/cnt_total;
-        bally = cnty/cnt_total;
-        for (int i = 0; i < height; i ++) {
-            for (int j = 0; j < width; j ++) {
-                if (v_pic[i][j] == VCOLOR_BALL) {
-                    cntr += sqrt(double((j - ballx)*(j - ballx) + (i - bally)*(i - bally)));
-                }
-            }
-        }
-//        ballr = cntr/cnt_total * 1.5;
-        ballr = pow(1.5*cntr/M_PI, 1.0/3) * 1.2;
-        cout << ballx << ' ' << bally << ' ' << ballr << '\n';
-        cout << cntr << '\n';
-
-        //print
-        int x1 = ballx - ballr, x2 = ballx + ballr;
-        int y1 = bally - ballr, y2 = bally + ballr;
-        cout << x1 << ' ' << y1 << '\n';
-        cout << x2 << ' ' << y2 << '\n';
-        cut_to_rect(x1, y1);
-        cut_to_rect(x2, y2);
-        for (int k = x1; k <= x2; k++) {
-            v_pic[y1][k] = VCOLOR_BALL_POSSIBLE;
-            v_pic[y2][k] = VCOLOR_BALL_POSSIBLE;
-        }
-        for (int k = y1 + 1; k < y2; k++) {
-            v_pic[k][x1] = VCOLOR_BALL_POSSIBLE;
-            v_pic[k][x2] = VCOLOR_BALL_POSSIBLE;
-        }
-
-        //判断球是否在机器前
-        return BALL_HAS;
-    }
-}
-
-int Vision::get_ball_hough() { //huanglj
-    // 这里的坐标系: x=u,y=v
-    int iLowH = 100, iHighH = 170, iLowS = 40, iHighS = 255, iLowV = 60, iHighV = 255;
-
-    Mat imgHSV;
-    cvtColor(pic, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
-
-    Mat imgThresholded;
-    inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholded); //Threshold the image
-
-    for (int i = 0; i < height; i ++) {
-        uchar *dt = imgThresholded.ptr<uchar>(i);
-        uchar *di = pic.ptr<uchar>(i);
-        for (int j = 0; j < width; j ++) {
-            uchar b = di[j*pic.channels()], g = di[j*pic.channels()+1], r = di[j*pic.channels()+2];
-            if (b > 100 && g < 80 && r < 80) {
-                dt[j] = 0;
-                continue;
-            }
-            if (g < 60 && r > 100) {
-                dt[j] = 0;
-                continue;
-            }
-            if (v_pic[i][j] == VCOLOR_WHITE || v_pic[i][j] == VCOLOR_EDGE || v_pic[i][j] == VCOLOR_GREEN) {
-                dt[j] = 0;
-                continue;
-            }
-        }
-    }
-    imshow("thresh 0", imgThresholded);
-
-    //morphological closing (removes small holes from the foreground)
-    dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-
-    //morphological opening (removes small objects from the foreground)
-    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(20, 20)) );
-    dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(20, 20)) );
-    imshow("thresh 1", imgThresholded);
-
-    Mat img = pic, gray, can;
-    cvtColor(img, gray, CV_BGR2GRAY);
-    // smooth it, otherwise a lot of false circles may be detected
-    Canny(img, can, 50, 100);
-    imshow("can", can);
-    GaussianBlur(gray, gray, Size(9, 9), 2, 2 );
-    vector<Vec3f> circles;
-    HoughCircles(gray, circles, CV_HOUGH_GRADIENT, 1.5, 20, 100, 43);
-    cout << "circles.size:" << circles.size() << '\n';
-
-    int isBall = -1, alterBall = -1;
-    double max_rate = 0, max_radius = 0;
-    for (size_t i = 0; i < circles.size(); i ++) {
-        int centerx = cvRound(circles[i][0]), centery = cvRound(circles[i][1]), centerr = cvRound(circles[i][2]);
-        int x1 = centerx - centerr, x2 = centerx + centerr;
-        int y1 = centery - centerr, y2 = centery + centerr;
-        cut_to_rect(y1, x1);
-        cut_to_rect(y2, x2);
-        int cnt_total = 0, cnt_ball = 0;
-        double ball_rate = 0.3, thresh_rate = 0.9;
-        cout << "y1:" << y1 << " y2:" << y2 << '\n';
-        for (int y = y1; y <y2; y ++) {
-            double tempc = centerr, tempa = fabs(centery - y);
-            double tempb = sqrt(tempc*tempc - tempa*tempa);
-            x1 = centerx - (int)tempb;
-            x2 = centerx + (int)tempb;
-            cut_to_rect(y1, x1);
-            cut_to_rect(y2, x2);
-            uchar *dt = imgThresholded.ptr<uchar>(y);
-            for (int x = x1; x < x2; x ++) {
-                cnt_total ++;
-                if (dt[x] == 255) cnt_ball ++;
-            }
-        }
-        double temp_rate = cnt_ball*1.0/cnt_total;
-        if (temp_rate > ball_rate && temp_rate > thresh_rate && centerr > max_radius) {
-            isBall = i;
-            max_radius = centerr;
-        }
-        if (temp_rate > ball_rate && centerr > 10 && temp_rate > max_rate) {
-            alterBall = i;
-            max_rate = temp_rate;
-        }
-        cout << i << ' ' << centerx << ' ' << centery << ' ' << centerr << '\n';
-        cout << i << ' ' << temp_rate << ' ' << isBall << '\n';
-    }
-    if (isBall == -1) isBall = alterBall;
-    cout << "isBall:" << isBall << '\n';
-
-    for (size_t i = 0; i < circles.size(); i++ ) {
-        Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
-        int radius = cvRound(circles[i][2]);
-        circle(img, center, 3, Scalar(0,255,0), -1, 8, 0 );
-        if (isBall == (int)i) {
-            ballx = circles[i][0];
-            bally = circles[i][1];
-            ballr = circles[i][2];
-            circle(img, center, radius, Scalar(255,0,0), 1, 8, 0);
-        } else {
-            circle(img, center, radius, Scalar(0,0,255), 1, 8, 0 );
-        }
-    }
-    imshow("circles", img );
-
-    if (isBall == -1) {
-        return BALL_NO;
-    } else {
-        return BALL_HAS;
-    }
-}
-
-void Vision::init_ground() {
-    ground.clear();
-    ground.push_back(Vec4f(   0,    0, 1800,    0));
-    ground.push_back(Vec4f( 350,  640, 1450,  640));
-    ground.push_back(Vec4f(   0, 2200, 1800, 2200));
-    ground.push_back(Vec4f( 350, 3760, 1450, 3760));
-    ground.push_back(Vec4f(   0, 4400, 1800, 4400));
-    ground.push_back(Vec4f( 350,    0,  350,  640));
-    ground.push_back(Vec4f(1450,    0, 1450,  640));
-    ground.push_back(Vec4f( 350, 3760,  350, 4400));
-    ground.push_back(Vec4f(1450, 3760, 1450, 4400));
-    ground.push_back(Vec4f(   0,    0,    0, 4400));
-    ground.push_back(Vec4f(1800,    0, 1800, 4400));
-}
-
-void Vision::pre_copy() {
-    static auto get_color = [&](uchar h, uchar s, uchar v) {
-        if (h > 102 && h < 137 && s > 90 && s < 150) return VCOLOR_GREEN;
-        if (s < 70 && v > 175) return VCOLOR_WHITE;
-        return VCOLOR_BACKGROUND;
-    };
-    Mat hsv;
-    cvtColor(pic, hsv, CV_BGR2HSV_FULL);
-    for (int i = 0; i < hsv.rows; i++) {
-        uchar *puchar = v_pic[i];
-        Vec3b const *pmat = hsv.ptr<Vec3b const>(i);
-        for (int j = 0; j < hsv.cols; j++) {
-            Vec3b const &pixel = pmat[j];
-            uchar c = get_color(pixel[0], pixel[1], pixel[2]);
-            puchar[j] = c;
-        }
-    }
 }
 
 void Vision::get_edge_white() {
@@ -652,25 +380,16 @@ void Vision::match_robot_pos() {
             }
         }
     }
-    enum {GROUND_WIDTH = 1800, GROUND_HEIGHT = 4400, GROUND_MM_PER_PIXEL = 8};
-    Mat view_ground(GROUND_HEIGHT / GROUND_MM_PER_PIXEL, GROUND_WIDTH / GROUND_MM_PER_PIXEL, CV_8UC3, Scalar::all(0));
-    auto xy_to_ground_point = [&](double xw, double yw) {
-        return Point(xw / GROUND_MM_PER_PIXEL, (GROUND_HEIGHT - yw) / GROUND_MM_PER_PIXEL);
-    };
-    for (size_t i = 0; i < ground.size(); i++) {
-        Vec4f const &l(ground[i]);
-        line(view_ground, xy_to_ground_point(l[0], l[1]), xy_to_ground_point(l[2], l[3]), Scalar::all(255), 2);
-    }
     vector<Point2f> ground_line_normal;
-    for (size_t i = 0; i < ground.size(); i++) {
-        Vec4f line = ground[i];
+    for (size_t i = 0; i < ground.lines.size(); i++) {
+        Vec4f line = ground.lines[i];
         Vec2f n(line[3] - line[1], line[0] - line[2]);
         ground_line_normal.push_back(n / sqrt(n.dot(n)));
     }
     static auto nearest_line_dist_2 = [&](Point2f const &p) {
         float min_dist = 1e20;
-        for (size_t i = 0; i < ground.size(); i++) {
-            Vec4f const &line(ground[i]);
+        for (size_t i = 0; i < ground.lines.size(); i++) {
+            Vec4f const &line(ground.lines[i]);
             Point2f p1(line[0], line[1]), p2(line[2], line[3]);
             float dist;
             Point2f vec_p_p1 = p - p1;
@@ -687,12 +406,13 @@ void Vision::match_robot_pos() {
     vector<pair<float, pair<int, Point2f> > > verr;
     min_error = 1e20;
     if (white_lines.size() < 10) {
+        Mat view_ground = ground.gen_ground_view();
         for (int m = 0; m < 4; m++) {
             //float delta = delta_base + CV_PI / 2 * m;
             vector<Point2f> possible_pos;
             for (int i = 0; i <= 1800; i += 50) {
                 for (int j = 0; j <= 2200; j += 50) {
-                    line(view_ground, xy_to_ground_point(i, j), xy_to_ground_point(i, j), Scalar::all(127), 3);
+                    line(view_ground, ground.xy_to_uv(i, j), ground.xy_to_uv(i, j), Scalar::all(127), 3);
                     possible_pos.push_back(Point2f(i, j));
                 }
             }
@@ -705,11 +425,6 @@ void Vision::match_robot_pos() {
                     sum_error += err;
                     if (sum_error > min_filt * 3)
                         break;
-                }
-                if (sum_error < 100) {
-                    cout << sum_error << endl;
-                    line(view_ground, xy_to_ground_point(supposed_pos.x, supposed_pos.y),
-                         xy_to_ground_point(supposed_pos.x, supposed_pos.y), Scalar(0, 0, 255), 3);
                 }
                 sum_error /= white_point_in_robot[m].size();
                 if (sum_error < min_error)
@@ -743,17 +458,234 @@ void Vision::match_robot_pos() {
             int m = min_loc.first;
             Point2f min_pos(robot_pos[0], robot_pos[1]);
             float min_delta = robot_delta;
-            line(view_ground, xy_to_ground_point(min_pos.x, min_pos.y), xy_to_ground_point(min_pos.x, min_pos.y), Scalar(0, 255, 0), 5);
-            line(view_ground, xy_to_ground_point(min_pos.x, min_pos.y),
-                 xy_to_ground_point(min_pos.x + 10000 * sin(min_delta), min_pos.y + 10000 * cos(min_delta)), Scalar(0, 255, 0), 1);
+            ground.draw_robot(view_ground, min_pos, Vec2f(sin(min_delta), cos(min_delta)));
             for (auto it = white_point_in_robot[m].begin(); it != white_point_in_robot[m].end(); it++) {
                 Point2f p = *it + min_pos;
-                line(view_ground, xy_to_ground_point(p.x, p.y), xy_to_ground_point(p.x, p.y), Scalar(0, 0, 191), 2);
+                line(view_ground, ground.xy_to_uv(p.x, p.y), ground.xy_to_uv(p.x, p.y), Scalar(0, 0, 191), 2);
             }
         }
         imshow("view_ground", view_ground);
     } else {
         robot_location_confidence = 0;
+    }
+}
+
+void Vision::get_ball_color() { //huanglj
+    int iLowH = 160, iHighH = 179, iLowS = 40, iHighS = 255, iLowV = 60, iHighV = 255;
+
+    Mat imgHSV;
+    cvtColor(pic, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
+
+    Mat imgThresholded;
+    inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholded); //Threshold the image
+    imshow("old thresh", imgThresholded);
+
+    for (int i = 0; i < height; i ++) {
+        uchar *dt = imgThresholded.ptr<uchar>(i);
+//        uchar *di = pic.ptr<uchar>(i);
+        for (int j = 0; j < width; j ++) {
+//            uchar b = di[j*pic.channels()], g = di[j*pic.channels()+1], r = di[j*pic.channels()+2];
+            if (v_pic[i][j] == VCOLOR_WHITE || v_pic[i][j] == VCOLOR_EDGE || v_pic[i][j] == VCOLOR_GREEN) {
+                dt[j] = 0;
+                continue;
+            }
+        }
+    }
+
+    imshow("thresh 1", imgThresholded);
+
+    //morphological closing (removes small holes from the foreground)
+    dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(10, 10)) );
+    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(10, 10)) );
+
+    //morphological opening (removes small objects from the foreground)
+    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(20, 20)) );
+    dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(20, 20)) );
+    imshow("thresh", imgThresholded);
+
+    for (int i = 0; i < height; i ++) {
+        uchar *dt = imgThresholded.ptr<uchar>(i);
+        for (int j = 0; j < width; j ++) {
+            if (dt[j] == 255) v_pic[i][j] = VCOLOR_BALL_POSSIBLE;
+        }
+    }
+
+    for (int i = 0; i < height; i += 2) {
+        for (int j = 0; j < width; j += 2) {
+            if (v_pic[i][j] != VCOLOR_BALL_POSSIBLE) continue;
+            static int const dx = 20, dy = 20;
+            static double const gr_rate = 0.4;
+            int x1 = i - dx, x2 = i + dx;
+            int y1 = j - dy, y2 = j + dy;
+            cut_to_rect(x1, y1);
+            cut_to_rect(x2, y2);
+            int cnt_gr = 0, cnt_total = 0;
+            static auto add_to_cnt = [&](uchar color) {
+                cnt_total ++;
+                if (color == VCOLOR_GREEN) cnt_gr ++;
+            };
+            for (int k = x1; k <= x2; k++) {
+                add_to_cnt(v_pic[k][y1]);
+                add_to_cnt(v_pic[k][y2]);
+            }
+            for (int k = y1 + 1; k < y2; k++) {
+                add_to_cnt(v_pic[x1][k]);
+                add_to_cnt(v_pic[x2][k]);
+            }
+
+            if (cnt_gr > cnt_total*gr_rate) {
+                v_pic[i][j] = VCOLOR_BALL;
+                expand_to_ball(i, j);
+            }
+        }
+    }
+
+    int cntx = 0, cnty = 0, cnt_total = 0;
+    double cntr = 0;
+    for (int i = 0; i < height; i ++) {
+        for (int j = 0; j < width; j ++) {
+            if (v_pic[i][j] == VCOLOR_BALL) {
+                cnt_total ++;
+                cntx += j;
+                cnty += i;
+            }
+        }
+    }
+    if (cnt_total == 0) {
+        ball_state = BALL_NO;
+    } else {
+        ballx = cntx/cnt_total;
+        bally = cnty/cnt_total;
+        for (int i = 0; i < height; i ++) {
+            for (int j = 0; j < width; j ++) {
+                if (v_pic[i][j] == VCOLOR_BALL) {
+                    cntr += sqrt(double((j - ballx)*(j - ballx) + (i - bally)*(i - bally)));
+                }
+            }
+        }
+//        ballr = cntr/cnt_total * 1.5;
+        ballr = pow(1.5*cntr/M_PI, 1.0/3);
+        cout << ballx << ' ' << bally << ' ' << ballr << '\n';
+        cout << cntr << '\n';
+
+        //print
+        int x1 = ballx - ballr, x2 = ballx + ballr;
+        int y1 = bally - ballr, y2 = bally + ballr;
+        cout << x1 << ' ' << y1 << '\n';
+        cout << x2 << ' ' << y2 << '\n';
+        cut_to_rect(x1, y1);
+        cut_to_rect(x2, y2);
+        for (int k = x1; k <= x2; k++) {
+            v_pic[y1][k] = VCOLOR_BALL_POSSIBLE;
+            v_pic[y2][k] = VCOLOR_BALL_POSSIBLE;
+        }
+        for (int k = y1 + 1; k < y2; k++) {
+            v_pic[k][x1] = VCOLOR_BALL_POSSIBLE;
+            v_pic[k][x2] = VCOLOR_BALL_POSSIBLE;
+        }
+
+        //判断球是否在机器前
+        ball_state = BALL_HAS;
+    }
+}
+
+void Vision::get_ball_hough() { //huanglj
+    // 这里的坐标系: x=u,y=v
+    int iLowH = 160, iHighH = 179, iLowS = 60, iHighS = 255, iLowV = 0, iHighV = 255;
+
+    Mat imgHSV;
+    cvtColor(pic, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
+
+    Mat imgThresholded;
+    inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholded); //Threshold the image
+
+    for (int i = 0; i < height; i ++) {
+        uchar *dt = imgThresholded.ptr<uchar>(i);
+        for (int j = 0; j < width; j ++) {
+            if (v_pic[i][j] == VCOLOR_WHITE || v_pic[i][j] == VCOLOR_EDGE || v_pic[i][j] == VCOLOR_GREEN) {
+                dt[j] = 0;
+                continue;
+            }
+        }
+    }
+    Mat img = pic, gray, can;
+    cvtColor(img, gray, CV_BGR2GRAY);
+    // smooth it, otherwise a lot of false circles may be detected
+    GaussianBlur(gray, gray, Size(9, 9), 2, 2 );
+    vector<Vec3f> circles;
+    HoughCircles(gray, circles, CV_HOUGH_GRADIENT, 1.5, 20, 150, 45);
+
+    int isBall = -1, alterBall = -1;
+    double max_rate = 0, max_radius = 0;
+    for (size_t i = 0; i < circles.size(); i ++) {
+        int centerx = cvRound(circles[i][0]), centery = cvRound(circles[i][1]), centerr = cvRound(circles[i][2]);
+        int x1 = centerx - centerr, x2 = centerx + centerr;
+        int y1 = centery - centerr, y2 = centery + centerr;
+        cut_to_rect(y1, x1);
+        cut_to_rect(y2, x2);
+        int cnt_total = 0, cnt_ball = 0;
+        double ball_rate = 0.3, thresh_rate = 0.8;
+        for (int y = y1; y <y2; y ++) {
+            double tempc = centerr, tempa = fabs(centery - y);
+            double tempb = sqrt(tempc*tempc - tempa*tempa);
+            x1 = centerx - (int)tempb;
+            x2 = centerx + (int)tempb;
+            cut_to_rect(y1, x1);
+            cut_to_rect(y2, x2);
+            uchar *dt = imgThresholded.ptr<uchar>(y);
+            for (int x = x1; x < x2; x ++) {
+                cnt_total ++;
+                if (dt[x] == 255) cnt_ball ++;
+            }
+        }
+        double temp_rate = cnt_ball*1.0/cnt_total;
+        if (temp_rate > ball_rate && temp_rate > thresh_rate && centerr > max_radius) {
+            isBall = i;
+            max_radius = centerr;
+        }
+        if (temp_rate > ball_rate && centerr > 10 && temp_rate > max_rate) {
+            alterBall = i;
+            max_rate = temp_rate;
+        }
+    }
+    if (isBall == -1) isBall = alterBall;
+
+    for (size_t i = 0; i < circles.size(); i++ ) {
+        Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+        int radius = cvRound(circles[i][2]);
+        circle(img, center, 3, Scalar(0,255,0), -1, 8, 0 );
+        if (isBall == (int)i) {
+            ballx = circles[i][0];
+            bally = circles[i][1];
+            ballr = circles[i][2];
+            circle(img, center, radius, Scalar(255,0,0), 3, 8, 0);
+        } else {
+            circle(img, center, radius, Scalar(0,0,255), 1, 8, 0 );
+        }
+    }
+    if (isBall == -1) {
+        ball_state = BALL_NO;
+    } else {
+        ball_state = BALL_HAS;
+    }
+}
+
+void Vision::pre_copy() {
+    static auto get_color = [&](uchar h, uchar s, uchar v) {
+        if (h > 102 && h < 137 && s > 90 && s < 150) return VCOLOR_GREEN;
+        if (s < 70 && v > 175) return VCOLOR_WHITE;
+        return VCOLOR_BACKGROUND;
+    };
+    Mat hsv;
+    cvtColor(pic, hsv, CV_BGR2HSV_FULL);
+    for (int i = 0; i < hsv.rows; i++) {
+        uchar *puchar = v_pic[i];
+        Vec3b const *pmat = hsv.ptr<Vec3b const>(i);
+        for (int j = 0; j < hsv.cols; j++) {
+            Vec3b const &pixel = pmat[j];
+            uchar c = get_color(pixel[0], pixel[1], pixel[2]);
+            puchar[j] = c;
+        }
     }
 }
 

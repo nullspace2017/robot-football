@@ -8,12 +8,16 @@ SOURCES += \
     location.cpp \
     test_location.cpp \
     ../motor/motor.cpp \
-    ../vision/transform.cpp \
     ../vision/vision.cpp
 
 HEADERS += \
+    location.hpp \
     location.h \
-    capture.hpp
+    capture.hpp \
+    ../motor/motor.h \
+    ../vision/vision.h \
+    ../vision/ground.hpp \
+    ../vision/transform.hpp
 
-LIBS += /usr/local/lib/libopencv_* \
-        /usr/lib/libpthread.so
+LIBS += `pkg-config --libs opencv`
+    -lpthread

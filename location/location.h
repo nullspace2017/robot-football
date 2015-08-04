@@ -20,7 +20,7 @@ public:
     double get_radius(cv::Vec2d, cv::Vec2d, cv::Vec2d, cv::Vec2d);
 private:
     Motor *const motor;
-    Ground const ground;
+    Ground ground;
     std::vector<Capture *> v_capture;
     std::vector<Vision *> v_vision;
     cv::Vec2d position;
