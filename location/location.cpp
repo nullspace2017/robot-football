@@ -133,7 +133,7 @@ double Location::get_radius(Vec2d cur_pos, Vec2d cur_dir, Vec2d des_pos, Vec2d d
             }
         } else {            
             r = (sqr(mov[0]) + sqr(mov[1])) / mov.ddot(rdir);
-            ori = des_pos + r * rdir;+
+            ori = des_pos + r * rdir;
             norm = cur_pos - ori;
         }        
         if (abs(norm.ddot(cur_dir)) < 1e-6) {

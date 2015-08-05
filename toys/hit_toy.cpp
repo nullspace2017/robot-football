@@ -11,7 +11,7 @@ int main() {
     VideoCapture capture1(1);
     Transform trans1(1);
     Location location(motor);
-    location.add_camera(&capture1, &trans1, true);
+    location.add_camera(&capture1, &trans1);
     location.set_current_location(cv::Vec2d(900, 2200), cv::Vec2d(0, 1));
 
     pair<Location::BALLSTATE, Vec2d> ball;
