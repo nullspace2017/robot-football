@@ -140,9 +140,13 @@ double Location::get_radius(Vec2d cur_pos, Vec2d cur_dir, Vec2d des_pos, Vec2d d
         if (abs(norm.ddot(cur_dir)) < 1e-6) {
             return -r;
         } else if (norm.ddot(cur_dir) < 0) {
-            return r / 5.0;
+            if (norm.ddot(cur_dir) > -0.4)
+            return r * 0.7;
+            else return r * 0.4;
         } else {
-            return -r / 5.0;
+            if (norm.ddot(cur_dir) < 0.2) return INFINITY;
+            else if (norm.ddot(cur_dir) < 0.4) return -r * 1.5;
+            else return -r * 0.7;
         }
     } else {
         if (mov.ddot(des_dir) < 0) {
@@ -169,9 +173,9 @@ double Location::get_radius(Vec2d cur_pos, Vec2d cur_dir, Vec2d des_pos, Vec2d d
                 norm = cur_pos - ori;
             }
             if (norm.ddot(cur_dir) < 0) {
-                return 20 - (r <= 0) * 40;
+                return 200 - (r <= 0) * 400;
             } else {
-                return -20 + (r <= 0) * 40;
+                return -200 + (r <= 0) * 400;
             }
         }
         if (abs(cur_dir[0]) < 1e-6) rdir = Vec2d(1, 0);
