@@ -38,7 +38,7 @@ std::pair<cv::Vec2d, cv::Vec2d> Location::get_location() {
     try_vision_correct();
     for (size_t i = 0; i < v_server.size(); i++) {
         char buf[128];
-        snprintf(buf, 128, "%f %f %f %f", position[0], position[1], direction[0], direction[1]);
+        snprintf(buf, 128, "%f %f %f %f %d %f %f", position[0], position[1], direction[0], direction[1], ball_state == BALL_NO ? 0 : 1, ball_pos[0], ball_pos[1]);
         v_server[i]->send_broadcast((void *)buf, strnlen(buf, 128));
     }
     return std::make_pair(position, direction);
@@ -97,8 +97,7 @@ cv::Mat Location::gen_ground_view() {
     Mat ground_view = ground.gen_ground_view();
     ground.draw_robot(ground_view, position, direction);
     if (ball_state == BALL_HAS)
-        line(ground_view, ground.xy_to_uv(ball_pos[0], ball_pos[1]),
-                ground.xy_to_uv(ball_pos[0], ball_pos[1]), cv::Scalar(0, 0, 255), 7);
+        ground.draw_ball(ground_view, ball_pos);
     return ground_view;
 }
 
