@@ -17,22 +17,23 @@ int main() {
 
     double speed = 0;
     int dir = 0;
+	Vec2d last_ball_loc(0,0);
 
     while (1) {
         Vec2d loc = location.get_location().first;
-        Vec2d last_ball_loc(0,0);
-        cout << "machine:" << loc << endl;
+		cout << "machine:" << loc << endl;
         pair<Location::BALLSTATE, cv::Vec2d> ball_pair = location.get_ball();
         int ballstate = ball_pair.first;
         Vec2d ball_loc = ball_pair.second;
         cout << "ball:" << ball_loc << endl;
+		cout << "lastball:" << last_ball_loc << endl;
+		cout << "dir:" << dir << endl;
         cout << endl;
         imshow("location", location.gen_ground_view());
         if (ballstate != Location::BALL_HAS) {
-            if (loc[0] - origin[0] > 700 || loc[0] - origin[0] < -700) motor->stop();
+            if (loc[0] - origin[0] > 500 || loc[0] - origin[0] < -500) motor->stop();
             else {
                 motor->go(5000, dir*0.5);
-                cout << "dir:" << dir << '\n';
             }
         } else {
             if (ball_loc[0] > last_ball_loc[0]) dir = -1;
@@ -45,13 +46,13 @@ int main() {
             } else if ((loc[0] - ball_loc[0]) < 50 && (loc[0] - ball_loc[0]) > -50) {
                 motor->stop();
             } else if (loc[0] - ball_loc[0] < 0) {
-                if (loc[0] - origin[0] > 700) motor->stop();
+                if (loc[0] - origin[0] > 500) motor->stop();
                 else {
                     speed = -0.5;
                     motor->go(5000, speed);
                 }
             } else if (loc[0] - ball_loc[0] > 0) {
-                if (loc[0] - origin[0] < -700) motor->stop();
+                if (loc[0] - origin[0] < -500) motor->stop();
                 else {
                     speed = 0.5;
                     motor->go(5000, speed);
