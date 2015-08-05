@@ -478,7 +478,6 @@ void Vision::get_ball_color() { //huanglj
 
     Mat imgThresholded;
     inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholded); //Threshold the image
-    imshow("old thresh", imgThresholded);
 
     for (int i = 0; i < height; i ++) {
         uchar *dt = imgThresholded.ptr<uchar>(i);
@@ -492,7 +491,6 @@ void Vision::get_ball_color() { //huanglj
         }
     }
 
-    imshow("thresh 1", imgThresholded);
 
     //morphological closing (removes small holes from the foreground)
     dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(10, 10)) );
@@ -501,7 +499,6 @@ void Vision::get_ball_color() { //huanglj
     //morphological opening (removes small objects from the foreground)
     erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(20, 20)) );
     dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(20, 20)) );
-    imshow("thresh", imgThresholded);
 
     for (int i = 0; i < height; i ++) {
         uchar *dt = imgThresholded.ptr<uchar>(i);
