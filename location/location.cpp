@@ -110,7 +110,23 @@ static inline T sqr(T x) {
 }
 
 double Location::get_radius(Vec2d cur_pos, Vec2d cur_dir, Vec2d des_pos, Vec2d des_dir) {
-//    Vec2d cur_pos(0, 0), cur_dir(0, 1), des_pos(1700, 4000), des_dir(0, -1);
+    cur_dir /= sqrt(cur_dir.dot(cur_dir));
+    des_dir /= sqrt(des_dir.dot(des_dir));
+    double board = 200.0;
+    double board_r = 260.0;
+    if (cur_pos[0] < board && cur_dir[0] < 0) {
+        if (cur_dir[1] > 0) return -board_r;
+        else return board_r;
+    } else if (cur_pos[0] > ground.width - board && cur_dir[0] > 0) {
+        if (cur_dir[1] > 0) return board_r;
+        else return -board_r;
+    } else if (cur_pos[1] < board && cur_dir[1] < 0) {
+        if (cur_dir[0] > 0) return board_r;
+        else return -board_r;
+    } else if (cur_pos[1] > ground.height - board && cur_dir[1] > 0) {
+        if (cur_dir[0] > 0) return -board_r;
+        else return board_r;
+    }
     Vec2d rdir, ori, norm; // direction of radius, origin of circle;
     Vec2d mov = (cur_pos - des_pos) / 2;
     double r;

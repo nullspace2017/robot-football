@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
     location.set_current_location(cv::Vec2d(1000, 300), cv::Vec2d(0, 1));
     int keep_cnt = 0;
     while (1) {
-        double const motor_speed = 0.5;
+        double const motor_speed = 0.85;
         double const threshold = 200.0;
         pair<Vec2d, Vec2d> loc = location.get_location();
         imshow("location", location.gen_ground_view());
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
                 motor->stop();
             }
         }
-        waitKey(20);
+        waitKey(50);
     }
     if (!simulate) {
         delete capture1;
