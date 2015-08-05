@@ -44,9 +44,15 @@ int main() {
                     motor->go(200, 0.1);
                 waitKey(50);
             } else {
-                motor->go(INFINITY, 0.5);
-                waitKey(0);
-                break;
+                Vec2d dist = Vec2d(900, 3760) - loc;
+                if (dist.ddot(dist) > 200) {
+                    if (dist.ddot(Vec2d(dir[1], -dir[0])) < 0)
+                        motor->go(1500, 0.2);
+                    else 
+                        motor->go(-1500, 0.2);
+                } else 
+                    motor->go(INFINITY, 0.5);
+                waitKey(50);
             }
         } else {
             double r = location.get_radius(loc, dir, ball.second, des_dir);
