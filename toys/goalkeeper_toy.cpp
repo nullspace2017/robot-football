@@ -15,7 +15,7 @@ int main() {
     location.add_camera(&capture2, &trans2, true);
     location.set_current_location(origin, cv::Vec2d(-1, 0));
 
-    double speed = 0.6, thresh = 400;
+    double speed = 0.7, thresh = 400;
     int dir = 0;
     Vec2d last_ball_loc(0,0);
 

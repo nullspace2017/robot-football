@@ -569,8 +569,8 @@ void Vision::get_ball_color() { //huanglj
         //print
         int x1 = ballx - ballr, x2 = ballx + ballr;
         int y1 = bally - ballr, y2 = bally + ballr;
-        cut_to_rect(x1, y1);
-        cut_to_rect(x2, y2);
+        cut_to_rect(y1, x1);
+        cut_to_rect(y2, x2);
         cout << x1 << ' ' << y1 << endl;
         cout << x2 << ' ' << y2 << endl;
         cout << '2' << endl;
