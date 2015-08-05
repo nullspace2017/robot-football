@@ -5,7 +5,7 @@ SOURCES  = ../vision/vision.cpp ../motor/motor.cpp ../location/location.cpp
 
 all: circle_toy biarc_toy net_server_toy
 
-circle_toy: circle_toy.cpp $(HEADERS) $(SOURCES)
+circle_toy: circle.cpp $(HEADERS) $(SOURCES)
 	$(CXX) $< $(SOURCES) $(CXXFLAGS) -o $@ `pkg-config --libs opencv`
 
 biarc_toy: biarc/arc_test.cpp biarc/double_arc.cpp biarc/double_arc.h $(HEADERS) $(SOURCES)
