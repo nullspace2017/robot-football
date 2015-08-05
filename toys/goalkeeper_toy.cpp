@@ -24,7 +24,7 @@ int main() {
             motor->stop();
         } else if (abs(ball_loc[0] - loc[0]) > 2000 || abs(ball_loc[1] - loc[1]) > 2000) {
             motor->stop();
-        } else if ((loc[0] - ball_loc[0]) < 50 && (loc[0] - ball_loc[0]) > -250) {
+        } else if ((loc[0] - ball_loc[0]) < 50 && (loc[0] - ball_loc[0]) > -50) {
             motor->stop();
         } else if (loc[0] - ball_loc[0] < 0) {
             if (loc[0] > 700) motor->stop();
