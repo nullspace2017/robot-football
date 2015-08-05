@@ -471,7 +471,7 @@ void Vision::match_robot_pos() {
 }
 
 void Vision::get_ball_color() { //huanglj
-    int iLowH = 160, iHighH = 179, iLowS = 40, iHighS = 255, iLowV = 60, iHighV = 255;
+    int iLowH = 155, iHighH = 179, iLowS = 40, iHighS = 255, iLowV = 60, iHighV = 255;
 
     Mat imgHSV;
     cvtColor(pic, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
@@ -663,6 +663,8 @@ void Vision::get_ball_hough() { //huanglj
             circle(img, center, radius, Scalar(0,0,255), 1, 8, 0 );
         }
     }
+    imshow("thresh", imgThresholded);
+    imshow("circle", img);
     if (isBall == -1) {
         ball_state = BALL_NO;
     } else {
@@ -672,7 +674,7 @@ void Vision::get_ball_hough() { //huanglj
 
 void Vision::pre_copy() {
     static auto get_color = [&](uchar h, uchar s, uchar v) {
-        if (h > 102 && h < 137 && s > 90 && s < 150) return VCOLOR_GREEN;
+        if (h > 102 && h < 147 && s > 90 && s < 170) return VCOLOR_GREEN;
         if (s < 70 && v > 175) return VCOLOR_WHITE;
         return VCOLOR_BACKGROUND;
     };
