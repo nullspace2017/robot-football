@@ -16,10 +16,11 @@ Location::~Location() {
         delete v_vision[i];
 }
 
-void Location::add_camera(cv::VideoCapture *capture, Transform *trans) {
+void Location::add_camera(cv::VideoCapture *capture, Transform *trans, bool disable_locate) {
     v_capture.push_back(new Capture(capture));
     v_vision.push_back(new Vision(cvRound(capture->get(CV_CAP_PROP_FRAME_HEIGHT)),
                                   cvRound(capture->get(CV_CAP_PROP_FRAME_WIDTH)), trans));
+    v_vision_conf.push_back(disable_locate ? 1 : 0);
 }
 
 std::pair<cv::Vec2d, cv::Vec2d> Location::get_location() {
@@ -68,18 +69,20 @@ void Location::try_vision_correct() {
         char buf[32] = {'f', 'r', 'a', 'm', 'e', (char)('0' + i), '\0'};
         imshow(buf, frame);
         v_vision[i]->input(frame);
-        cv::Vec2f pos;
-        cv::Vec2f direct;
-        double location_confidence;
-        v_vision[i]->get_location(pos, direct, location_confidence);
-        if (location_confidence > 0.5) {
-            if (direct.dot(direction) < 0) {
-                direct = -direct;
-                pos = cv::Vec2f(ground.width - pos[0], ground.height - pos[1]);
+        if ((v_vision_conf[i] & 0x00000001) == 0) { // disable_locate == false
+            cv::Vec2f pos;
+            cv::Vec2f direct;
+            double location_confidence;
+            v_vision[i]->get_location(pos, direct, location_confidence);
+            if (location_confidence > 0.5) {
+                if (direct.dot(direction) < 0) {
+                    direct = -direct;
+                    pos = cv::Vec2f(ground.width - pos[0], ground.height - pos[1]);
+                }
+                position = pos;
+                direction = direct;
+                break;
             }
-            position = pos;
-            direction = direct;
-            break;
         }
     }
 }
