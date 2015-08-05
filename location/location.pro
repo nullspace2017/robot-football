@@ -17,7 +17,9 @@ HEADERS += \
     ../motor/motor.h \
     ../vision/vision.h \
     ../vision/ground.hpp \
-    ../vision/transform.hpp
+    ../vision/transform.hpp \
+    ../network/client.hpp \
+    ../network/server.hpp
 
 LIBS += `pkg-config --libs opencv` \
     /usr/lib/libpthread.so

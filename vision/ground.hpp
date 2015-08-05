@@ -37,7 +37,10 @@ public:
         cv::line(ground, xy_to_uv(pos[0], pos[1]),
              xy_to_uv(pos[0] + 10000 * direct[0], pos[1] + 10000 * direct[1]), cv::Scalar(0, 255, 0), 1);
     }
-
+    void draw_ball(cv::Mat &ground, cv::Vec2f ball_pos) {
+        cv::line(ground, xy_to_uv(ball_pos[0], ball_pos[1]),
+                xy_to_uv(ball_pos[0], ball_pos[1]), cv::Scalar(0, 0, 255), 8);
+    }
     std::vector<cv::Vec4f> const lines;
     double const width;
     double const height;
