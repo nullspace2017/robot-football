@@ -33,6 +33,11 @@ int main() {
         if (ball_cur.first == Location::BALL_HAS) {
             ball = ball_cur;
         }
+        if (ball.first == Location::BALL_NO) {
+            motor->go(20, 0.2);
+            waitKey(50);
+            continue;
+        }
 #else
         ball.second = Vec2d(1200, 3400);
 #endif

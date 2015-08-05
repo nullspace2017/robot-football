@@ -160,14 +160,10 @@ double Location::get_radius(Vec2d cur_pos, Vec2d cur_dir, Vec2d des_pos, Vec2d d
             ori = cur_pos + r * rdir;
             norm = des_pos - ori;
         }
-        if (r < 0) r -= 300;
-        else r += 300;
+        if (r < 0) r -= 600;
+        else r += 600;
         if (abs(norm.ddot(cur_dir)) < 1e-6) {
             return -r;
-        } else if (norm.ddot(cur_dir) < 0) {
-            return r / 5.0;
-        } else {
-            return -r / 5.0;
         }
     }
 }
