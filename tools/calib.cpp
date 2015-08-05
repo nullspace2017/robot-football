@@ -134,8 +134,10 @@ void drawPoint() {
     for (unsigned i = 0; i < imgPos.size(); i ++) {
         circle(img, imgPos[i], 2, Scalar(0, 0, 255), -1);
         Point2f point(realPos[i].x*2, realPos[i].y*2);
-        int newJ = point.x + 400;
-        int newI = - point.y + 500;
+        // int newJ = point.x + 400;
+        // int newI = - point.y + 500;
+        int newJ = point.x - 100;
+        int newI = point.y + 400;
         circle(real, Point2f(newJ, newI), 2, Scalar(255, 0, 0), -1);
     }
     imshow("img", img);
@@ -202,8 +204,10 @@ void trans(Mat& img, Mat& transImg) {
     
     for (unsigned i = 0; i < realPoints.size(); i ++) {
         Point2f point(realPoints[i].x*2, realPoints[i].y*2);
-        int newJ = point.x + 400;
-        int newI = - point.y + 500;
+        // int newJ = point.x + 400;
+        // int newI = - point.y + 500;
+        int newJ = point.x - 100;
+        int newI = point.y + 400;
         if (newJ > 0 && newI > 0 && newI < transImg.rows && newJ < transImg.cols) {
             transImg.at<Vec3b>(newI, newJ) = realScalar[i];
         }
