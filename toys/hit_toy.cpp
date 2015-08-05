@@ -1,0 +1,54 @@
+#include <iostream>
+#include <unistd.h>
+#include "../motor/motor.h"
+#include "../location/location.h"
+
+using namespace std;
+using namespace cv;
+
+int main() {
+    Motor *motor = Motor::get_instance(true);
+    VideoCapture capture1(1);
+    Transform trans1(1);
+    Location location(motor);
+    //location.add_camera(&capture1, &trans1);
+    location.set_current_location(cv::Vec2d(900, 2200), cv::Vec2d(0, 1));
+    while (1) {
+//        Vec2d loc = location.get_location().first;
+//        location.get_ball();
+//        imshow("location", location.gen_ground_view());
+//        cout << loc << endl;
+//        if (loc.dot(loc) > 4000 * 4000) {
+//            motor->stop();
+//            break;
+//        }
+//        motor->go(-5000, 0.2);
+//        waitKey(50);
+        imshow("location", location.gen_ground_view());
+        Vec2d loc = location.get_location().first, dir = location.get_location().second;
+        pair<Location::BALLSTATE, Vec2d> ball;// = location.get_ball();
+        ball.second = Vec2d(1200, 3200);
+        Vec2d des_dir = Vec2d(900, 4400) - ball.second, dist = loc - ball.second;
+        cout << sqrt(dist.ddot(dist)) << endl;
+        if (sqrt(dist.ddot(dist)) < 300) {
+            double cosa = dir.ddot(des_dir) / sqrt(dir.ddot(dir)) / sqrt(des_dir.ddot(des_dir));
+            if (cosa < 0.98) {
+                if (dir.ddot(Vec2d(des_dir[1], -des_dir[0])) < 0)
+                    motor->go(-20, 0.2);
+                else
+                    motor->go(20, 0.2);
+                waitKey(50);
+            } else {
+                motor->go(INFINITY, 0.5);
+                waitKey(0);
+                break;
+            }
+        } else {
+            cout << loc << dir << ball.second << des_dir << endl;
+            motor->go(location.get_radius(loc, dir, ball.second, des_dir), 0.2);
+            waitKey(50);
+        }
+    }
+    Motor::destroy_instance();
+    return 0;
+}
