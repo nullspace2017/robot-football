@@ -7,11 +7,11 @@ using namespace std;
 using namespace cv;
 
 int main() {
-    Motor *motor = Motor::get_instance(true);
+    Motor *motor = Motor::get_instance();
     VideoCapture capture1(1);
     Transform trans1(1);
     Location location(motor);
-    //location.add_camera(&capture1, &trans1);
+    location.add_camera(&capture1, &trans1, true);
     location.set_current_location(cv::Vec2d(900, 2200), cv::Vec2d(0, 1));
 
     pair<Location::BALLSTATE, Vec2d> ball;
@@ -28,11 +28,14 @@ int main() {
 //        waitKey(50);
         imshow("location", location.gen_ground_view());
         Vec2d loc = location.get_location().first, dir = location.get_location().second;
-        pair<Location::BALLSTATE, Vec2d> ball_cur;// = location.get_ball();
+#if 1
+        pair<Location::BALLSTATE, Vec2d> ball_cur = location.get_ball();
         if (ball_cur.first == Location::BALL_HAS) {
             ball = ball_cur;
         }
+#else
         ball.second = Vec2d(1200, 3400);
+#endif
         Vec2d des_dir = Vec2d(900, 4400) - ball.second, dist = loc - ball.second;
         cout << sqrt(dist.ddot(dist)) << endl;
         if (sqrt(dist.ddot(dist)) < 300) {
