@@ -87,7 +87,7 @@ void Location::try_vision_correct() {
 cv::Mat Location::gen_ground_view() {
     Mat ground_view = ground.gen_ground_view();
     ground.draw_robot(ground_view, position, direction);
-    if (ball_state == BALL_HAS)
+    if (ball_state != BALL_NO)
         line(ground_view, ground.xy_to_uv(ball_pos[0], ball_pos[1]),
                 ground.xy_to_uv(ball_pos[0], ball_pos[1]), cv::Scalar(0, 0, 255), 7);
     return ground_view;
@@ -107,42 +107,56 @@ double Location::get_radius(Vec2d cur_pos, Vec2d cur_dir, Vec2d des_pos, Vec2d d
         if (abs(des_dir[0]) < 1e-6) rdir = Vec2d(1, 0);
         else if (abs(des_dir[1]) < 1e-6) rdir = Vec2d(0, 1);
         else  {
-            rdir = Vec2d(1, des_dir[1] / des_dir[0]);
+            rdir = Vec2d(1, -des_dir[1] / des_dir[0]);
             rdir /= sqrt(1 + sqr(rdir[1]));
+        }        
+        if (rdir.ddot(Vec2d(des_dir[1], -des_dir[0])) < 0) {
+            rdir = -rdir;
         }
         if (abs(mov.ddot(rdir)) < 1e-6) {
             if (abs(cur_dir.ddot(rdir)) < 1e-6)
                 return INFINITY;
             else {
-                if (rdir.ddot(Vec2d(des_dir[1], -des_dir[0])) < 0)
-                    rdir = -rdir;
                 norm = rdir;
+                r = sqrt(mov.ddot(mov)) * 2;
             }
         } else {            
             r = (sqr(mov[0]) + sqr(mov[1])) / mov.ddot(rdir);
             ori = des_pos + r * rdir;
             norm = cur_pos - ori;
+        }        
+        if (abs(norm.ddot(cur_dir)) < 1e-3) {
+            return -r;
+        } else if (norm.ddot(cur_dir) < 0) {
+            return r / 3.0;
+        } else {
+            return -r / 3.0;
         }
-    } else {
+    } else {        
         if (abs(cur_dir[0]) < 1e-6) rdir = Vec2d(1, 0);
         else if (abs(cur_dir[1]) < 1e-6) rdir = Vec2d(0, 1);
         else  {
-            rdir = Vec2d(1, cur_dir[1] / cur_dir[0]);
-            rdir /= sqrt(1 + sqr(rdir[1]));
+            rdir = Vec2d(1, -cur_dir[1] / cur_dir[0]);
+            rdir /= sqrt(1 + sqr(rdir[1]));            
         }
+        if (rdir.ddot(Vec2d(cur_dir[1], -cur_dir[0])) < 0)
+            rdir = -rdir;
         if (abs(mov.ddot(rdir)) < 1e-6) {
-            if (rdir.ddot(Vec2d(cur_dir[1], -cur_dir[0])) < 0)
-                rdir = -rdir;
             norm = rdir;
+            r = sqrt(mov.ddot(mov)) * 2;
         } else {
             r = (sqr(mov[0]) + sqr(mov[1])) / -mov.ddot(rdir);
             ori = cur_pos + r * rdir;
             norm = des_pos - ori;
         }
-    }
-    if (norm.ddot(cur_dir) < 0) {
-        return -abs(r) / 3.0;
-    } else {
-        return abs(r) / 3.0;
+        if (r < 0) r -= 300;
+        else r += 300;
+        if (abs(norm.ddot(cur_dir)) < 1e-6) {
+            return -r;
+        } else if (norm.ddot(cur_dir) < 0) {
+            return r / 3.0;
+        } else {
+            return -r / 3.0;
+        }
     }
 }

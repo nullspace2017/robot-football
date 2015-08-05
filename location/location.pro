@@ -20,4 +20,4 @@ HEADERS += \
     ../vision/transform.hpp
 
 LIBS += `pkg-config --libs opencv` \
-    /usr/lib/libpthread.so
+    -lpthread
