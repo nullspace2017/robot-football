@@ -31,6 +31,9 @@ public:
     cv::Point xy_to_uv(double xw, double yw) {
         return cv::Point(xw / GROUND_MM_PER_PIXEL, (GROUND_HEIGHT - yw) / GROUND_MM_PER_PIXEL);
     }
+    cv::Vec2d uv_to_xy(int u, int v) {
+        return cv::Vec2d(u * GROUND_MM_PER_PIXEL, GROUND_HEIGHT - v * GROUND_MM_PER_PIXEL);
+    }
     void draw_robot(cv::Mat &ground, cv::Vec2f pos, cv::Vec2f direct) {
         direct /= std::sqrt(direct.dot(direct));
         cv::line(ground, xy_to_uv(pos[0], pos[1]), xy_to_uv(pos[0], pos[1]), cv::Scalar(0, 255, 0), 5);

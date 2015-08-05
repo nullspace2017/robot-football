@@ -106,8 +106,6 @@ private:
         }
     }
     void on_client_message(int fd, void const *buf, int len) {
-        if (buf != 0 && fd >= 0)
-            std::cout << "on_client_message: " << len << std::endl;
         hook_mutex.lock();
         for (size_t i = 0; i < v_hooks.size(); i++) {
             v_hooks[i](fd, buf, len);
