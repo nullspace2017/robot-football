@@ -35,6 +35,17 @@ public:
         v_hooks.push_back(func);
         hook_mutex.unlock();
     }
+    void send_broadcast(void *buf, int len) {
+        client_mutex.lock();
+        for (size_t i = 0; i < v_client.size(); i++) {
+            if (write(v_client[i], buf, len) != len)
+                continue;
+            if (write(v_client[i], "\n", 1) != 1)
+                continue;
+        }
+        client_mutex.unlock();
+    }
+private:
     static void accept_thread_run(Server *server) {
         int socket_fd;
         if ((socket_fd = socket(PF_INET,SOCK_STREAM,IPPROTO_TCP)) < 0) {
@@ -67,14 +78,17 @@ public:
         }
         for (size_t i = 0; i < server->v_client_thread.size(); i++) {
             server->v_client_thread[i]->join();
+            delete server->v_client_thread[i];
         }
+        server->v_client_thread.clear();
     }
     static void receive_client_run(Server *server, int fd) {
         char ch;
         std::vector<char> data;
         while (1) {
             if (read(fd, &ch, 1) < 0) {
-                throw("read() error!");
+                std::cout << "client quit" << std::endl;
+                break;
             } else {
                 if (ch == '\n') {
                     server->on_client_message(fd, data.data(), data.size());
@@ -84,13 +98,6 @@ public:
                 }
             }
         }
-    }
-    void send_broadcast(void *buf, int len) {
-        client_mutex.lock();
-        for (size_t i = 0; i < v_client.size(); i++) {
-            write(v_client[i], buf, len);
-        }
-        client_mutex.unlock();
     }
     void on_client_message(int fd, void *buf, int len) {
         if (buf != 0 && fd >= 0)

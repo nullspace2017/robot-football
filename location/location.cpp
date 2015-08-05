@@ -36,23 +36,15 @@ std::pair<cv::Vec2d, cv::Vec2d> Location::get_location() {
         direction /= sqrt(direction.dot(direction));
     }
     try_vision_correct();
+    for (size_t i = 0; i < v_server.size(); i++) {
+        char buf[128];
+        snprintf(buf, 128, "%f %f %f %f", position[0], position[1], direction[0], direction[1]);
+        v_server[i]->send_broadcast((void *)buf, strnlen(buf, 128));
+    }
     return std::make_pair(position, direction);
 }
 
 std::pair<Location::BALLSTATE, cv::Vec2d> Location::get_ball() {
-    if (ball_state != BALL_NO)
-        ball_state = BALL_LAST;
-    for (size_t i = 0; i < v_vision.size(); i++) {
-        Vision::BALLSTATE ball_state;
-        cv::Vec2f ball_pos;
-        v_vision[i]->get_ball_pos(ball_pos, ball_state);
-        if (ball_state == Vision::BALL_HAS) {
-            this->ball_state = BALL_HAS;
-            cv::Vec2d n(direction[1], -direction[0]);
-            this->ball_pos = position + ball_pos[0] * n + ball_pos[1] * direction;
-            break;
-        }
-    }
     return make_pair(ball_state, ball_pos);
 }
 
@@ -83,6 +75,19 @@ void Location::try_vision_correct() {
             }
             position = pos;
             direction = direct;
+            break;
+        }
+    }
+    if (ball_state != BALL_NO)
+        ball_state = BALL_LAST;
+    for (size_t i = 0; i < v_vision.size(); i++) {
+        Vision::BALLSTATE ball_state;
+        cv::Vec2f ball_pos;
+        v_vision[i]->get_ball_pos(ball_pos, ball_state);
+        if (ball_state == Vision::BALL_HAS) {
+            this->ball_state = BALL_HAS;
+            cv::Vec2d n(direction[1], -direction[0]);
+            this->ball_pos = position + ball_pos[0] * n + ball_pos[1] * direction;
             break;
         }
     }
