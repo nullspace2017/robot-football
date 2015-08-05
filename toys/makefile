@@ -6,7 +6,7 @@ LIBS = `pkg-config --libs opencv` -lpthread
 
 all: circle_toy biarc_toy hit_toy net_server_toy goalkeeper_toy
 
-hit_toy: hit.cpp $(HEADERS) $(SOURCES)
+hit_toy: hit_toy.cpp $(HEADERS) $(SOURCES)
 	$(CXX) $< $(SOURCES) $(CXXFLAGS) -o $@ $(LIBS)
 
 circle_toy: circle.cpp $(HEADERS) $(SOURCES)
