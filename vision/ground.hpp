@@ -31,11 +31,14 @@ public:
     cv::Point xy_to_uv(double xw, double yw) {
         return cv::Point(xw / GROUND_MM_PER_PIXEL, (GROUND_HEIGHT - yw) / GROUND_MM_PER_PIXEL);
     }
-    void draw_robot(cv::Mat &ground, cv::Vec2f pos, cv::Vec2f direct) {
+    cv::Vec2d uv_to_xy(int u, int v) {
+        return cv::Vec2d(u * GROUND_MM_PER_PIXEL, GROUND_HEIGHT - v * GROUND_MM_PER_PIXEL);
+    }
+    void draw_robot(cv::Mat &ground, cv::Vec2f pos, cv::Vec2f direct, cv::Scalar color = cv::Scalar(0, 255, 0)) {
         direct /= std::sqrt(direct.dot(direct));
-        cv::line(ground, xy_to_uv(pos[0], pos[1]), xy_to_uv(pos[0], pos[1]), cv::Scalar(0, 255, 0), 5);
+        cv::line(ground, xy_to_uv(pos[0], pos[1]), xy_to_uv(pos[0], pos[1]), color, 5);
         cv::line(ground, xy_to_uv(pos[0], pos[1]),
-             xy_to_uv(pos[0] + 10000 * direct[0], pos[1] + 10000 * direct[1]), cv::Scalar(0, 255, 0), 1);
+             xy_to_uv(pos[0] + 10000 * direct[0], pos[1] + 10000 * direct[1]), color, 1);
     }
     void draw_ball(cv::Mat &ground, cv::Vec2f ball_pos) {
         cv::line(ground, xy_to_uv(ball_pos[0], ball_pos[1]),

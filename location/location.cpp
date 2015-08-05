@@ -163,6 +163,6 @@ double Location::get_radius(Vec2d cur_pos, Vec2d cur_dir, Vec2d des_pos, Vec2d d
         }
         if (r < 0) r -= 600;
         else r += 600;
-            return -r;
+        return -r;
     }
 }

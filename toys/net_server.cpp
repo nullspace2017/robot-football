@@ -17,6 +17,7 @@ void on_instruction(int, void const *buf, int) {
     double x, y, dx, dy;
     sscanf((char const *)buf, "%lf%lf%lf%lf", &x, &y, &dx, &dy);
     dest_mutex.lock();
+    v_dest.clear();
     v_dest.push_back(make_pair(Vec2d(x, y), Vec2d(dx, dy)));
     dest_mutex.unlock();
 }

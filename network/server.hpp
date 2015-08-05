@@ -50,7 +50,7 @@ private:
     static void accept_thread_run(Server *server) {
         int socket_fd;
         if ((socket_fd = socket(PF_INET,SOCK_STREAM,IPPROTO_TCP)) < 0) {
-            throw "socket() failed";
+            throw ServerException("socket failed");
         }
         int flag = 1;
         setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, (char const *)&flag, sizeof(flag));
@@ -61,17 +61,17 @@ private:
         server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
         server_addr.sin_port = htons(SERVER_PORT);
         if (bind(socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-            throw "bind() failed";
+            throw ServerException("bind failed");
         }
         if (listen(socket_fd, 10) < 0) {
-            throw "listen() failed";
+            throw ServerException("listen failed");
         }
         while (1) {
             socklen_t sin_size = sizeof(struct sockaddr_in);
             sockaddr_in client_addr;
             int accept_fd;
             if ((accept_fd = accept(socket_fd, (struct sockaddr*)&client_addr,&sin_size)) == -1 ) {
-                throw "accept error!";
+                throw ServerException("accept error");
                 continue;
             }
             setsockopt(accept_fd, IPPROTO_TCP, TCP_NODELAY, (char const *)&flag, sizeof(flag));
@@ -92,7 +92,7 @@ private:
         std::vector<char> data;
         while (1) {
             if (read(fd, &ch, 1) < 0) {
-                std::cout << "client quit" << std::endl;
+                std::cout << "Server: client quit" << std::endl;
                 break;
             } else {
                 if (ch == '\n') {
@@ -106,8 +106,6 @@ private:
         }
     }
     void on_client_message(int fd, void const *buf, int len) {
-        if (buf != 0 && fd >= 0)
-            std::cout << "on_client_message: " << len << std::endl;
         hook_mutex.lock();
         for (size_t i = 0; i < v_hooks.size(); i++) {
             v_hooks[i](fd, buf, len);
