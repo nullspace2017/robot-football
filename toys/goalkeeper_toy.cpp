@@ -17,17 +17,17 @@ int main() {
 
     double speed = 1.0, thresh = 300;
     int dir = 0;
-	Vec2d last_ball_loc(0,0);
+    Vec2d last_ball_loc(0,0);
 
     while (1) {
         Vec2d loc = location.get_location().first;
-		cout << "machine:" << loc << endl;
+        cout << "machine:" << loc << endl;
         pair<Location::BALLSTATE, cv::Vec2d> ball_pair = location.get_ball();
         int ballstate = ball_pair.first;
         Vec2d ball_loc = ball_pair.second;
         cout << "ball:" << ball_loc << endl;
-		cout << "lastball:" << last_ball_loc << endl;
-		cout << "dir:" << dir << endl;
+        cout << "lastball:" << last_ball_loc << endl;
+        cout << "dir:" << dir << endl;
         cout << endl;
         imshow("location", location.gen_ground_view());
         if (ballstate != Location::BALL_HAS) {
@@ -38,7 +38,7 @@ int main() {
         } else {
             if (ball_loc[0] > last_ball_loc[0]) dir = -1;
             else if (ball_loc[0] < last_ball_loc[0]) dir = 1;
-			else dir = 0;
+            else dir = 0;
             last_ball_loc = ball_loc;
             if (ball_loc[0] == 0 && ball_loc[1] == 0) {
                 motor->stop();
