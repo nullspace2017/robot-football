@@ -146,7 +146,33 @@ double Location::get_radius(Vec2d cur_pos, Vec2d cur_dir, Vec2d des_pos, Vec2d d
         }
     } else {
         if (mov.ddot(des_dir) < 0) {
-            return 20;
+            if (abs(des_dir[0]) < 1e-6) rdir = Vec2d(1, 0);
+            else if (abs(des_dir[1]) < 1e-6) rdir = Vec2d(0, 1);
+            else  {
+                rdir = Vec2d(1, -des_dir[0] / des_dir[1]);
+                rdir /= sqrt(1 + sqr(rdir[1]));
+            }
+            if (rdir.ddot(Vec2d(des_dir[1], -des_dir[0])) < 0) {
+                rdir = -rdir;
+            }
+            if (abs(mov.ddot(rdir)) < 1e-6) {
+
+                if (abs(cur_dir.ddot(rdir)) < 1e-6)
+                    return INFINITY;
+                else {
+                    norm = rdir;
+                    r = sqrt(mov.ddot(mov)) * 2;
+                }
+            } else {
+                r = (sqr(mov[0]) + sqr(mov[1])) / mov.ddot(rdir);
+                ori = des_pos + r * rdir;
+                norm = cur_pos - ori;
+            }
+            if (norm.ddot(cur_dir) < 0) {
+                return 20 - (r <= 0) * 40;
+            } else {
+                return -20 + (r <= 0) * 40;
+            }
         }
         if (abs(cur_dir[0]) < 1e-6) rdir = Vec2d(1, 0);
         else if (abs(cur_dir[1]) < 1e-6) rdir = Vec2d(0, 1);
@@ -164,6 +190,7 @@ double Location::get_radius(Vec2d cur_pos, Vec2d cur_dir, Vec2d des_pos, Vec2d d
             ori = cur_pos + r * rdir;
             norm = des_pos - ori;
         }
+
         r *= 2.0;
         return -r;
     }

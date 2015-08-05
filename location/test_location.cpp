@@ -17,7 +17,6 @@ int main() {
     location.add_server(&server);
     while (1) {
         Vec2d loc = location.get_location().first;
-        location.get_ball();
         imshow("location", location.gen_ground_view());
         cout << loc << endl;
         if (loc.dot(loc) > 4000 * 4000) {

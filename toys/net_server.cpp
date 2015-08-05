@@ -22,14 +22,28 @@ void on_instruction(int, void const *buf, int) {
     dest_mutex.unlock();
 }
 
-int main() {
-    Motor *motor = Motor::get_instance(true);
-    //VideoCapture capture1(1);
-    //Transform trans1(1);
+int main(int argc, char *argv[]) {
+    bool simulate = true;
+    if (argc != 2) {
+        cout << "Usage: " << argv[0] << "[s/r]" << endl;
+        cout << "  s: simulate only" << endl;
+        cout << "  r: run with motor" << endl;
+        cout << "  default to simulate" << endl;
+    } else {
+        if (argv[1][0] == 'r')
+            simulate = false;
+    }
+    Motor *motor = Motor::get_instance(simulate);
     Location location(motor);
     Server server;
     server.add_on_receive_hook(on_instruction);
-    //location.add_camera(&capture1, &trans1);
+    VideoCapture *capture1;
+    Transform *trans1;
+    if (!simulate) {
+        capture1 = new VideoCapture(1);
+        trans1 = new Transform(1);
+        location.add_camera(capture1, trans1);
+    }
     location.add_server(&server);
     location.set_current_location(cv::Vec2d(1000, 300), cv::Vec2d(0, 1));
     int keep_cnt = 0;
@@ -62,6 +76,10 @@ int main() {
             }
         }
         waitKey(20);
+    }
+    if (!simulate) {
+        delete capture1;
+        delete trans1;
     }
     Motor::destroy_instance();
     return 0;
