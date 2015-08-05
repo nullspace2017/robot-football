@@ -31,11 +31,12 @@ int main() {
         if (ballstate != Location::BALL_HAS) {
             if (loc[0] - origin[0] > 700 || loc[0] - origin[0] < -700) motor->stop();
             else {
-                motor->go(5000, -dir*0.5);
-                cout << "dir:" << -dir << '\n';
+                motor->go(5000, dir*0.5);
+                cout << "dir:" << dir << '\n';
             }
         } else {
-            dir = (ball_loc[0] - last_ball_loc[0])/fabs(ball_loc[0] - last_ball_loc[0]);
+            if (ball_loc[0] > last_ball_loc[0]) dir = -1;
+            else if (ball_loc[0] < last_ball_loc[0]) dir = 1;
             last_ball_loc = ball_loc;
             if (ball_loc[0] == 0 && ball_loc[1] == 0) {
                 motor->stop();
