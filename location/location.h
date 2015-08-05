@@ -11,7 +11,7 @@ class Location {
 public:
     Location(Motor *motor);
     ~Location();
-    void add_camera(cv::VideoCapture *capture, Transform *trans, bool disable_locate = false);
+    void add_camera(cv::VideoCapture *capture, Transform *trans, bool disable_locate = false); // disable_locate: only find ball
     std::pair<cv::Vec2d, cv::Vec2d> get_location();
     enum BALLSTATE { BALL_NO, BALL_LAST, BALL_HAS };
     std::pair<Location::BALLSTATE, cv::Vec2d> get_ball(); // should get_location first
