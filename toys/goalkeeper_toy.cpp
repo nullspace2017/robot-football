@@ -15,7 +15,7 @@ int main() {
     location.add_camera(&capture2, &trans2, true);
     location.set_current_location(origin, cv::Vec2d(-1, 0));
 
-    double speed = 0;
+    double speed = 1.0;
     int dir = 0;
 	Vec2d last_ball_loc(0,0);
 
@@ -33,28 +33,27 @@ int main() {
         if (ballstate != Location::BALL_HAS) {
             if (loc[0] - origin[0] > 500 || loc[0] - origin[0] < -500) motor->stop();
             else {
-                motor->go(5000, dir*0.5);
+                motor->go(5000, dir*speed);
             }
         } else {
             if (ball_loc[0] > last_ball_loc[0]) dir = -1;
             else if (ball_loc[0] < last_ball_loc[0]) dir = 1;
+			else dir = 0;
             last_ball_loc = ball_loc;
             if (ball_loc[0] == 0 && ball_loc[1] == 0) {
                 motor->stop();
             } else if (abs(ball_loc[0] - loc[0]) > 2000 || abs(ball_loc[1] - loc[1]) > 2000) {
                 motor->stop();
-            } else if ((loc[0] - ball_loc[0]) < 50 && (loc[0] - ball_loc[0]) > -50) {
+            } else if ((loc[0] - ball_loc[0]) < 50 && (loc[0] - ball_loc[0]) > -100) {
                 motor->stop();
             } else if (loc[0] - ball_loc[0] < 0) {
                 if (loc[0] - origin[0] > 500) motor->stop();
                 else {
-                    speed = -0.5;
-                    motor->go(5000, speed);
+                    motor->go(5000, -speed);
                 }
             } else if (loc[0] - ball_loc[0] > 0) {
                 if (loc[0] - origin[0] < -500) motor->stop();
                 else {
-                    speed = 0.5;
                     motor->go(5000, speed);
                 }
             } else {
