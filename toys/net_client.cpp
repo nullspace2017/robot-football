@@ -12,6 +12,9 @@ Ground ground;
 mutex frame_mutex;
 Mat frame(200, 200, CV_8UC3, cv::Scalar::all(0));
 
+bool has_dest = false;
+Vec2d dest_pos, dest_direct;
+
 void on_recieve(int, void const *buf, int) {
     double x, y, dx, dy, ballx, bally;
     int ball_state;
@@ -20,6 +23,8 @@ void on_recieve(int, void const *buf, int) {
     frame_mutex.lock();
     frame = ground.gen_ground_view();
     ground.draw_robot(frame, position, direction);
+    if (has_dest)
+        ground.draw_robot(frame, dest_pos, dest_direct, Scalar(255, 0, 0));
     if (ball_state == 1)
         ground.draw_ball(frame, Vec2d(ballx, bally));
     frame_mutex.unlock();
@@ -41,6 +46,9 @@ void onMouse(int event, int x, int y, int, void *p_client) {
             char buf[128];
             snprintf(buf, 128, "%f %f %f %f", pos[0], pos[1], direct[0], direct[1]);
             client->send_to_server((void *)buf, strnlen(buf, 128));
+            has_dest = true;
+            dest_pos = pos;
+            dest_direct = direct;
         }
     }
 }
