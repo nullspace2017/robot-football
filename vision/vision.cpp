@@ -471,7 +471,7 @@ void Vision::match_robot_pos() {
 }
 
 void Vision::get_ball_color() { //huanglj
-    int iLowH = 155, iHighH = 179, iLowS = 40, iHighS = 255, iLowV = 60, iHighV = 255;
+    int iLowH = 160, iHighH = 179, iLowS = 60, iHighS = 255, iLowV = 0, iHighV = 255;
 
     Mat imgHSV;
     cvtColor(pic, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
@@ -499,6 +499,7 @@ void Vision::get_ball_color() { //huanglj
     //morphological opening (removes small objects from the foreground)
     erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(20, 20)) );
     dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(20, 20)) );
+    imshow("thresh", imgThresholded);
 
     for (int i = 0; i < height; i ++) {
         uchar *dt = imgThresholded.ptr<uchar>(i);
@@ -548,9 +549,11 @@ void Vision::get_ball_color() { //huanglj
             }
         }
     }
+    cout << cnt_total << endl;
     if (cnt_total == 0) {
         ball_state = BALL_NO;
     } else {
+        cout << '1' << endl;
         ballx = cntx/cnt_total;
         bally = cnty/cnt_total;
         for (int i = 0; i < height; i ++) {
@@ -562,16 +565,15 @@ void Vision::get_ball_color() { //huanglj
         }
 //        ballr = cntr/cnt_total * 1.5;
         ballr = pow(1.5*cntr/M_PI, 1.0/3);
-        cout << ballx << ' ' << bally << ' ' << ballr << '\n';
-        cout << cntr << '\n';
 
         //print
         int x1 = ballx - ballr, x2 = ballx + ballr;
         int y1 = bally - ballr, y2 = bally + ballr;
-        cout << x1 << ' ' << y1 << '\n';
-        cout << x2 << ' ' << y2 << '\n';
         cut_to_rect(x1, y1);
         cut_to_rect(x2, y2);
+        cout << x1 << ' ' << y1 << endl;
+        cout << x2 << ' ' << y2 << endl;
+        cout << '2' << endl;
         for (int k = x1; k <= x2; k++) {
             v_pic[y1][k] = VCOLOR_BALL_POSSIBLE;
             v_pic[y2][k] = VCOLOR_BALL_POSSIBLE;
@@ -580,7 +582,7 @@ void Vision::get_ball_color() { //huanglj
             v_pic[k][x1] = VCOLOR_BALL_POSSIBLE;
             v_pic[k][x2] = VCOLOR_BALL_POSSIBLE;
         }
-
+        cout << '3' << endl;
         //判断球是否在机器前
         ball_state = BALL_HAS;
     }
