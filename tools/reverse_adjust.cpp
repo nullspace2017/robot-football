@@ -17,8 +17,12 @@ void onMouse(int event, int x, int y, int, void* _img) {
 }
 
 void drawLine(Mat& img) {
+    // left camera
     line(img, Point(558, 185), Point(89, 182), Scalar(0, 0, 255), 2);
     line(img, Point(558, 185), Point(417, 129), Scalar(0, 0, 255), 2);
+    // right camera
+    line(img, Point(602, 108), Point(368, 110), Scalar(255, 255, 0), 2);
+    line(img, Point(602, 108), Point(484, 67), Scalar(255, 255, 0), 2);
 }
 
 
