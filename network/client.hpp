@@ -10,6 +10,7 @@
 #include <mutex>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 
 class ClientException: public std::exception {
@@ -49,6 +50,8 @@ private:
         if ((socket_fd = socket(AF_INET,SOCK_STREAM,0)) < 0 ) {
             throw ClientException("create socket error");
         }
+        int flag = 1;
+        setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, (char const *)&flag, sizeof(flag));
         memset(&server_addr, 0, sizeof(server_addr));
         server_addr.sin_family = AF_INET;
         server_addr.sin_port = htons(SERVER_PORT);

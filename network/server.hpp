@@ -10,6 +10,7 @@
 #include <functional>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 
 class ServerException: public std::exception {
@@ -51,6 +52,9 @@ private:
         if ((socket_fd = socket(PF_INET,SOCK_STREAM,IPPROTO_TCP)) < 0) {
             throw "socket() failed";
         }
+        int flag = 1;
+        setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, (char const *)&flag, sizeof(flag));
+        setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, (char const *)&flag, sizeof(flag));
         sockaddr_in server_addr;
         memset(&server_addr, 0, sizeof(server_addr));
         server_addr.sin_family = AF_INET;
@@ -70,6 +74,7 @@ private:
                 throw "accept error!";
                 continue;
             }
+            setsockopt(accept_fd, IPPROTO_TCP, TCP_NODELAY, (char const *)&flag, sizeof(flag));
             std::printf("Server: new connection from %s\n",(char*)inet_ntoa(client_addr.sin_addr));
             server->client_mutex.lock();
             server->v_client.push_back(accept_fd);
