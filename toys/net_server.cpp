@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
     int keep_cnt = 0;
     while (1) {
         double const motor_speed = 0.5;
-        double const threshold = 100.0;
+        double const threshold = 200.0;
         pair<Vec2d, Vec2d> loc = location.get_location();
         imshow("location", location.gen_ground_view());
         if (keep_cnt > 0) {
