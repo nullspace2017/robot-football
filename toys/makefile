@@ -24,6 +24,10 @@ net_client_toy: net_client.cpp $(HEADERS) $(SOURCES)
 goalkeeper_toy: goalkeeper_toy.cpp $(HEADERS) $(SOURCES)
 	$(CXX) $< $(SOURCES) $(CXXFLAGS) -o $@ $(LIBS)
 
+square_toy: square_toy.cpp $(HEADERS) $(SOURCES)
+	$(CXX) $< $(SOURCES) $(CXXFLAGS) -o $@ $(LIBS)
+
+
 clean:
 	$(RM) *_toy
 
