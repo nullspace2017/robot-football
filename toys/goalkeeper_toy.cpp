@@ -13,27 +13,47 @@ int main() {
     Location location(motor);
     location.add_camera(&capture2, &trans2, true);
     location.set_current_location(cv::Vec2d(0, 0), cv::Vec2d(-1, 0));
+
+    double speed = 0;
+    int dir = 0;
+
     while (1) {
         Vec2d loc = location.get_location().first;
+        Vec2d last_ball_loc(0,0);
         cout << "machine:" << loc << endl;
-        Vec2d ball_loc = location.get_ball().second;
+        pair<Location::BALLSTATE, cv::Vec2d> ball_pair = location.get_ball();
+        int ballstate = ball_pair.first;
+        Vec2d ball_loc = ball_pair.second;
         cout << "ball:" << ball_loc << endl;
         cout << endl;
         imshow("location", location.gen_ground_view());
-        if (ball_loc[0] == 0 && ball_loc[1] == 0) {
-            motor->stop();
-        } else if (abs(ball_loc[0] - loc[0]) > 2000 || abs(ball_loc[1] - loc[1]) > 2000) {
-            motor->stop();
-        } else if ((loc[0] - ball_loc[0]) < 50 && (loc[0] - ball_loc[0]) > -50) {
-            motor->stop();
-        } else if (loc[0] - ball_loc[0] < 0) {
-            if (loc[0] > 700) motor->stop();
-            else motor->go(5000, -0.5);
-        } else if (loc[0] - ball_loc[0] > 0) {
-            if (loc[0] < -700) motor->stop();
-            else motor->go(5000, 0.5);
+        if (ballstate != Location::BALL_HAS) {
+            if (loc[0] > 700 || loc[0] < -700) motor->stop();
+            else motor->go(5000, -dir*0.5);
         } else {
-            motor->stop();
+            dir = (ball_loc[0] - last_ball_loc[0])/fabs(ball_loc[0] - last_ball_loc[0]);
+            last_ball_loc = ball_loc;
+            if (ball_loc[0] == 0 && ball_loc[1] == 0) {
+                motor->stop();
+            } else if (abs(ball_loc[0] - loc[0]) > 2000 || abs(ball_loc[1] - loc[1]) > 2000) {
+                motor->stop();
+            } else if ((loc[0] - ball_loc[0]) < 50 && (loc[0] - ball_loc[0]) > -50) {
+                motor->stop();
+            } else if (loc[0] - ball_loc[0] < 0) {
+                if (loc[0] > 700) motor->stop();
+                else {
+                    speed = -0.5;
+                    motor->go(5000, speed);
+                }
+            } else if (loc[0] - ball_loc[0] > 0) {
+                if (loc[0] < -700) motor->stop();
+                else {
+                    speed = 0.5;
+                    motor->go(5000, speed);
+                }
+            } else {
+                motor->stop();
+            }
         }
         waitKey(50);
     }
