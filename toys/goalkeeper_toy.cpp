@@ -7,12 +7,13 @@ using namespace std;
 using namespace cv;
 
 int main() {
+    Vec2d origin(900, 200);
     Motor *motor = Motor::get_instance();
     VideoCapture capture2(1);
     Transform trans2(2);
     Location location(motor);
     location.add_camera(&capture2, &trans2, true);
-    location.set_current_location(cv::Vec2d(0, 0), cv::Vec2d(-1, 0));
+    location.set_current_location(origin, cv::Vec2d(-1, 0));
 
     double speed = 0;
     int dir = 0;
@@ -28,8 +29,11 @@ int main() {
         cout << endl;
         imshow("location", location.gen_ground_view());
         if (ballstate != Location::BALL_HAS) {
-            if (loc[0] > 700 || loc[0] < -700) motor->stop();
-            else motor->go(5000, -dir*0.5);
+            if (loc[0] - origin[0] > 700 || loc[0] - origin[0] < -700) motor->stop();
+            else {
+                motor->go(5000, -dir*0.5);
+                cout << "dir:" << -dir << '\n';
+            }
         } else {
             dir = (ball_loc[0] - last_ball_loc[0])/fabs(ball_loc[0] - last_ball_loc[0]);
             last_ball_loc = ball_loc;
@@ -40,13 +44,13 @@ int main() {
             } else if ((loc[0] - ball_loc[0]) < 50 && (loc[0] - ball_loc[0]) > -50) {
                 motor->stop();
             } else if (loc[0] - ball_loc[0] < 0) {
-                if (loc[0] > 700) motor->stop();
+                if (loc[0] - origin[0] > 700) motor->stop();
                 else {
                     speed = -0.5;
                     motor->go(5000, speed);
                 }
             } else if (loc[0] - ball_loc[0] > 0) {
-                if (loc[0] < -700) motor->stop();
+                if (loc[0] - origin[0] < -700) motor->stop();
                 else {
                     speed = 0.5;
                     motor->go(5000, speed);
