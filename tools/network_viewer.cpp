@@ -11,7 +11,7 @@ Ground ground;
 mutex frame_mutex;
 Mat frame(200, 200, CV_8UC3, cv::Scalar::all(0));
 
-void on_recieve(int, void *buf, int) {
+void on_recieve(int, void const *buf, int) {
     double x, y, dx, dy, ballx, bally;
     int ball_state;
     sscanf((char const *)buf, "%lf%lf%lf%lf%d%lf%lf", &x, &y, &dx, &dy, &ball_state, &ballx, &bally);

@@ -33,12 +33,12 @@ public:
         pre_close = true;
         read_server_thread->join();
     }
-    void add_on_receive_hook(std::function<void (int, void *, int)> const &func) {
+    void add_on_receive_hook(std::function<void (int, void const *, int)> const &func) {
         hook_mutex.lock();
         v_hooks.push_back(func);
         hook_mutex.unlock();
     }
-    void send_to_server(void *buf, int len) {
+    void send_to_server(void const *buf, int len) {
         if (write(socket_fd, buf, len) != len)
             throw ClientException("write error");
         if (write(socket_fd, "\n", 1) != 1)
@@ -72,7 +72,8 @@ private:
                 throw ClientException("read error");
             } else {
                 if (ch == '\n') {
-                    client->on_server_message(fd, data.data(), data.size());
+                    data.push_back('\0');
+                    client->on_server_message(fd, data.data(), data.size() - 1);
                     data.clear();
                 } else {
                     data.push_back(ch);
@@ -80,7 +81,7 @@ private:
             }
         }
     }
-    void on_server_message(int fd, void *buf, int len) {
+    void on_server_message(int fd, void const *buf, int len) {
         hook_mutex.lock();
         for (size_t i = 0; i < v_hooks.size(); i++) {
             v_hooks[i](fd, buf, len);
@@ -93,7 +94,7 @@ private:
     int socket_fd;
     std::thread *read_server_thread;
     std::mutex hook_mutex;
-    std::vector<std::function<void (int, void *, int)> > v_hooks;
+    std::vector<std::function<void (int, void const*, int)> > v_hooks;
 };
 
 #endif // CLIENT_HPP

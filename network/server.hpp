@@ -31,12 +31,12 @@ public:
         pre_close = true;
         listen_thread.join();
     }
-    void add_on_receive_hook(std::function<void (int, void *, int)> const &func) {
+    void add_on_receive_hook(std::function<void (int, void const *, int)> const &func) {
         hook_mutex.lock();
         v_hooks.push_back(func);
         hook_mutex.unlock();
     }
-    void send_broadcast(void *buf, int len) {
+    void send_broadcast(void const *buf, int len) {
         client_mutex.lock();
         for (size_t i = 0; i < v_client.size(); i++) {
             if (write(v_client[i], buf, len) != len)
@@ -96,7 +96,8 @@ private:
                 break;
             } else {
                 if (ch == '\n') {
-                    server->on_client_message(fd, data.data(), data.size());
+                    data.push_back('\0');
+                    server->on_client_message(fd, data.data(), data.size() - 1);
                     data.clear();
                 } else {
                     data.push_back(ch);
@@ -104,7 +105,7 @@ private:
             }
         }
     }
-    void on_client_message(int fd, void *buf, int len) {
+    void on_client_message(int fd, void const *buf, int len) {
         if (buf != 0 && fd >= 0)
             std::cout << "on_client_message: " << len << std::endl;
         hook_mutex.lock();
@@ -121,7 +122,7 @@ private:
 private:
     enum { SERVER_PORT = 5678 };
     std::mutex hook_mutex;
-    std::vector<std::function<void (int, void *, int)> > v_hooks;
+    std::vector<std::function<void (int, void const *, int)> > v_hooks;
 };
 
 #endif // SERVER_HPP
