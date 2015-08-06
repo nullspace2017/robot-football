@@ -4,7 +4,7 @@ HEADERS  = ../vision/vision.h ../vision/transform.hpp ../vision/ground.hpp ../mo
 SOURCES  = ../vision/vision.cpp ../motor/motor.cpp ../location/location.cpp
 LIBS = `pkg-config --libs opencv` -lpthread
 
-all: circle_toy biarc_toy hit_toy net_server_toy net_client_toy goalkeeper_toy
+all: circle_toy biarc_toy hit_toy net_server_toy net_client_toy goalkeeper_toy square_toy
 
 hit_toy: hit_toy.cpp $(HEADERS) $(SOURCES)
 	$(CXX) $< $(SOURCES) $(CXXFLAGS) -o $@ $(LIBS)
