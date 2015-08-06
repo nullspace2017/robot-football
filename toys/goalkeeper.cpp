@@ -23,7 +23,6 @@ int main() {
         Vec2d loc = location.get_location().first;
         cout << "machine:" << loc << endl;
         pair<Location::BALLSTATE, cv::Vec2d> ball_pair = location.get_ball();
-        int ballstate = ball_pair.first;
         Vec2d ball_loc = ball_pair.second;
         cout << "ball:" << ball_loc << endl;
         cout << "lastball:" << last_ball_loc << endl;

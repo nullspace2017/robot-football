@@ -6,7 +6,7 @@ LIBS = `pkg-config --libs opencv` -lpthread
 
 all: circle_toy biarc_toy hit_toy net_server_toy net_client_toy goalkeeper_toy keepgoal_toy square_toy
 
-hit_toy: hit_toy.cpp $(HEADERS) $(SOURCES)
+hit_toy: hit.cpp $(HEADERS) $(SOURCES)
 	$(CXX) $< $(SOURCES) $(CXXFLAGS) -o $@ $(LIBS)
 
 circle_toy: circle.cpp $(HEADERS) $(SOURCES)
@@ -21,13 +21,13 @@ net_server_toy: net_server.cpp $(HEADERS) $(SOURCES)
 net_client_toy: net_client.cpp $(HEADERS) $(SOURCES)
 	$(CXX) $< $(SOURCES) $(CXXFLAGS) -o $@ $(LIBS)
 
-goalkeeper_toy: goalkeeper_toy.cpp $(HEADERS) $(SOURCES)
+goalkeeper_toy: goalkeeper.cpp $(HEADERS) $(SOURCES)
 	$(CXX) $< $(SOURCES) $(CXXFLAGS) -o $@ $(LIBS)
 
 keepgoal_toy: keepgoal.cpp $(HEADERS) $(SOURCES)
 	$(CXX) $< $(SOURCES) $(CXXFLAGS) -o $@ $(LIBS)
 
-square_toy: square_toy.cpp $(HEADERS) $(SOURCES)
+square_toy: square.cpp $(HEADERS) $(SOURCES)
 	$(CXX) $< $(SOURCES) $(CXXFLAGS) -o $@ $(LIBS)
 
 
