@@ -12,6 +12,8 @@ int main() {
     Transform trans1(1);
     Location location(motor);
     location.add_camera(&capture1, &trans1);
+    Server server;
+    location.add_server(&server);
     location.set_current_location(cv::Vec2d(1500, 2200), cv::Vec2d(0, 1));
     while (1) {
         auto loc = location.get_location();

@@ -12,6 +12,7 @@ int main() {
     Location location(motor);
     Server server;
     location.add_server(&server);
+    int keep;
     while (1) {
         Mat frame;
         capture1 >> frame;
@@ -35,13 +36,16 @@ int main() {
         double red_avg = (double)sum_u / red_cnt;
         cout << red_cnt << '\t' << red_avg << endl;
         if (red_cnt > 1400) {
+            if (red_cnt > 4000) keep = 2000;
             if (red_avg < 310) motor->go(INFINITY, 0.6);
             else if (red_avg > 400) motor->go(INFINITY, -0.6);
             else motor->stop();
+        } else if (keep > 0) {
         } else {
             motor->stop();
         }
         waitKey(20);
+        keep -= 20;
     }
     Motor::destroy_instance();
     return 0;

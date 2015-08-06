@@ -100,7 +100,8 @@ int main() {
     Transform trans1(1);
     Location location(motor);
     location.add_camera(&capture1, &trans1);
-    
+    Server server;
+    location.add_server(&server);
     location.set_current_location(cv::Vec2d(900, 400), Vec2d(-1, 0));
     
     while (1) {
