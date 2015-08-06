@@ -12,7 +12,7 @@ int main() {
     Location location(motor);
     Server server;
     location.add_server(&server);
-    int keep;
+    int keep = 0;
     while (1) {
         Mat frame;
         capture1 >> frame;
