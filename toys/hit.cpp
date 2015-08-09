@@ -15,6 +15,7 @@ int main() {
     location.set_current_location(cv::Vec2d(666, 1000), cv::Vec2d(-0.1, 0.9));
 
     pair<Location::BALLSTATE, Vec2d> ball;
+    bool hold_ball = false, adjust_dir = false;
     while (1) {
         imshow("location", location.gen_ground_view());
         Vec2d loc = location.get_location().first, dir = location.get_location().second;
@@ -34,24 +35,27 @@ int main() {
         Vec2d des_dir = Vec2d(900, 4400) - ball.second, dist = loc - ball.second;
         //des_dir = Vec2d(-0.01, 0.99);
         cout << sqrt(dist.ddot(dist)) << endl;
-        if (sqrt(dist.ddot(dist)) < 200) {
+        double dist_val = sqrt(dist.ddot(dist));
+        if (dist_val < 200 || hold_ball) {
+            hold_ball = true;
             double cosa = dir.ddot(des_dir) / sqrt(dir.ddot(dir)) / sqrt(des_dir.ddot(des_dir));
             //cosa = 1;
-            if (cosa < 0.99) {
+            if (cosa < 0.99 && !adjust_dir) {
                 if (dir.ddot(Vec2d(des_dir[1], -des_dir[0])) < 0)
                     motor->go(-200, 0.1);
                 else
                     motor->go(200, 0.1);
                 waitKey(50);
             } else {
-                Vec2d dist = Vec2d(900, 3760) - loc;
-                if (dist.ddot(dist) > 200) {
-                    if (dist.ddot(Vec2d(dir[1], -dir[0])) < 0)
+                adjust_dir = true;
+                Vec2d door_dist = Vec2d(900, 4400) - loc;
+                if (sqrt(door_dist.ddot(door_dist)) > 100) {
+                    if (door_dist.ddot(Vec2d(dir[1], -dir[0])) < 0)
                         motor->go(1500, 0.2);
                     else 
                         motor->go(-1500, 0.2);
                 } else 
-                    motor->go(INFINITY, 0.5);
+                    motor->stop();
                 waitKey(50);
             }
         } else {
